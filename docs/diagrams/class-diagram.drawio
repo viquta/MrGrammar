@@ -1,0 +1,341 @@
+<mxfile host="app.diagrams.net" modified="2026-04-19T12:00:00.000Z" agent="MrGrammar Documentation" version="24.0.0" type="device">
+  <diagram id="class-diagram" name="UML Class Diagram">
+    <mxGraphModel dx="2074" dy="1156" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== TITLE ==================== -->
+        <mxCell id="title" value="MrGrammar — UML Class Diagram" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="900" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ENUMERATIONS ==================== -->
+
+        <!-- UserRole Enum -->
+        <mxCell id="enum-userrole" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;enumeration&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;UserRole&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;STUDENT&lt;br&gt;TEACHER&lt;br&gt;ADMIN&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- SubmissionStatus Enum -->
+        <mxCell id="enum-submissionstatus" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;enumeration&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;SubmissionStatus&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;SUBMITTED&lt;br&gt;ANALYZING&lt;br&gt;IN_REVIEW&lt;br&gt;COMPLETED&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="160" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ErrorCategory Enum -->
+        <mxCell id="enum-errorcategory" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;enumeration&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ErrorCategory&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;GRAMMAR&lt;br&gt;SPELLING&lt;br&gt;ARTICLE&lt;br&gt;PREPOSITION&lt;br&gt;VERB_TENSE&lt;br&gt;PUNCTUATION&lt;br&gt;OTHER&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="160" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- Severity Enum -->
+        <mxCell id="enum-severity" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;enumeration&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Severity&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;LOW&lt;br&gt;MEDIUM&lt;br&gt;HIGH&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="580" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- MembershipRole Enum -->
+        <mxCell id="enum-membershiprole" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;enumeration&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;MembershipRole&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;STUDENT&lt;br&gt;TEACHER&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="160" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: User ==================== -->
+        <mxCell id="class-user" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;accounts.User&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;User&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ username : String&lt;br&gt;+ email : String&lt;br&gt;+ password : String&lt;br&gt;+ first_name : String&lt;br&gt;+ last_name : String&lt;br&gt;+ role : UserRole = STUDENT&lt;br&gt;+ is_active : Boolean&lt;br&gt;+ is_staff : Boolean&lt;br&gt;+ date_joined : DateTime&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ is_student : Boolean «property»&lt;br&gt;+ is_teacher : Boolean «property»&lt;br&gt;+ is_admin_user : Boolean «property»&lt;br&gt;+ __str__() : String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="280" height="310" as="geometry" />
+        </mxCell>
+
+        <!-- Inheritance note: extends AbstractUser -->
+        <mxCell id="note-user-abstract" value="extends Django AbstractUser" style="shape=note;whiteSpace=wrap;html=1;fontSize=11;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
+          <mxGeometry x="380" y="410" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: Classroom ==================== -->
+        <mxCell id="class-classroom" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;classrooms.Classroom&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Classroom&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ name : String(200)&lt;br&gt;+ language : String(10) = 'de'&lt;br&gt;+ created_by : FK → User&lt;br&gt;+ created_at : DateTime «auto»&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ __str__() : String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="80" width="260" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: ClassroomMembership ==================== -->
+        <mxCell id="class-membership" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;classrooms.ClassroomMembership&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;ClassroomMembership&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ user : FK → User&lt;br&gt;+ classroom : FK → Classroom&lt;br&gt;+ role : MembershipRole&lt;br&gt;+ joined_at : DateTime «auto»&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ __str__() : String&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:10px;font-style:italic;&quot;&gt;{unique_together: [user, classroom]}&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="310" width="280" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: TextSubmission ==================== -->
+        <mxCell id="class-submission" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;submissions.TextSubmission&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;TextSubmission&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ student : FK → User&lt;br&gt;+ classroom : FK → Classroom&lt;br&gt;+ title : String(300)&lt;br&gt;+ content : Text&lt;br&gt;+ language : String(10) = 'de'&lt;br&gt;+ status : SubmissionStatus = SUBMITTED&lt;br&gt;+ submitted_at : DateTime «auto»&lt;br&gt;+ updated_at : DateTime «auto»&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ __str__() : String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="80" width="290" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: DetectedError ==================== -->
+        <mxCell id="class-detectederror" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;feedback.DetectedError&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;DetectedError&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ submission : FK → TextSubmission&lt;br&gt;+ error_category : ErrorCategory&lt;br&gt;+ severity : Severity = MEDIUM&lt;br&gt;+ start_offset : Integer ≥ 0&lt;br&gt;+ end_offset : Integer ≥ 0&lt;br&gt;+ original_text : Text&lt;br&gt;+ hint_text : Text [0..1]&lt;br&gt;+ correct_solution : Text&lt;br&gt;+ languagetool_rule_id : String(100) [0..1]&lt;br&gt;+ is_resolved : Boolean = false&lt;br&gt;+ created_at : DateTime «auto»&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ __str__() : String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="80" width="300" height="330" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: CorrectionAttempt ==================== -->
+        <mxCell id="class-correctionattempt" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;feedback.CorrectionAttempt&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;CorrectionAttempt&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ error : FK → DetectedError&lt;br&gt;+ student : FK → User&lt;br&gt;+ attempt_number : SmallInteger ≥ 0&lt;br&gt;+ attempted_text : Text&lt;br&gt;+ is_correct : Boolean = false&lt;br&gt;+ hint_shown : Boolean = false&lt;br&gt;+ solution_shown : Boolean = false&lt;br&gt;+ created_at : DateTime «auto»&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ __str__() : String&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:10px;font-style:italic;&quot;&gt;{unique_together: [error, attempt_number]}&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1600" y="470" width="300" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLASS: LearnerErrorSummary ==================== -->
+        <mxCell id="class-learnererrorsummary" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;laquo;analytics.LearnerErrorSummary&amp;raquo;&lt;/i&gt;&lt;br&gt;&lt;b&gt;LearnerErrorSummary&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ id : Integer «PK»&lt;br&gt;+ student : FK → User&lt;br&gt;+ submission : FK → TextSubmission&lt;br&gt;+ error_category : String(20)&lt;br&gt;+ total_errors : Integer ≥ 0 = 0&lt;br&gt;+ first_attempt_successes : Integer ≥ 0 = 0&lt;br&gt;+ avg_hints_used : Float = 0.0&lt;br&gt;+ computed_at : DateTime «auto»&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:11px;&quot;&gt;+ __str__() : String&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:10px;font-style:italic;&quot;&gt;{unique_together: [student, submission, error_category]}&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="440" width="310" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ASSOCIATIONS ==================== -->
+
+        <!-- User 1 ──created_by──* Classroom -->
+        <mxCell id="assoc-user-classroom-created" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" source="class-user" target="class-classroom" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-user-classroom-created-label" value="created_by" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-user-classroom-created">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-classroom-created-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-classroom-created">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-classroom-created-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-classroom-created">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User 1 ──* ClassroomMembership (user) -->
+        <mxCell id="assoc-user-membership" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" source="class-user" target="class-membership" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-user-membership-label" value="classroom_memberships" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-user-membership">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-membership-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-membership">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-membership-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-membership">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Classroom 1 ──* ClassroomMembership (classroom) -->
+        <mxCell id="assoc-classroom-membership" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="class-classroom" target="class-membership" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-classroom-membership-label" value="memberships" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-classroom-membership">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint x="15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-classroom-membership-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-classroom-membership">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-15" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-classroom-membership-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-classroom-membership">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="-15" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User 1 ──student──* TextSubmission -->
+        <mxCell id="assoc-user-submission" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;curved=1;" edge="1" source="class-user" target="class-submission" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="210" />
+              <mxPoint x="1100" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-submission-label" value="submissions (student)" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-user-submission">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-submission-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-submission">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-submission-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-submission">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Classroom 1 ──* TextSubmission -->
+        <mxCell id="assoc-classroom-submission" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="class-classroom" target="class-submission" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-classroom-submission-label" value="submissions" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-classroom-submission">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-classroom-submission-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-classroom-submission">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-classroom-submission-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-classroom-submission">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- TextSubmission 1 ──* DetectedError -->
+        <mxCell id="assoc-submission-error" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" source="class-submission" target="class-detectederror" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-submission-error-label" value="errors" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-submission-error">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-submission-error-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-submission-error">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-submission-error-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-submission-error">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DetectedError 1 ──* CorrectionAttempt -->
+        <mxCell id="assoc-error-attempt" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="class-detectederror" target="class-correctionattempt" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-error-attempt-label" value="attempts" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-error-attempt">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint x="15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-error-attempt-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-error-attempt">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-15" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-error-attempt-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-error-attempt">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="-15" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User 1 ──* CorrectionAttempt (student) -->
+        <mxCell id="assoc-user-attempt" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.9;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;curved=1;" edge="1" source="class-user" target="class-correctionattempt" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="360" />
+              <mxPoint x="700" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-attempt-label" value="correction_attempts" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-user-attempt">
+          <mxGeometry x="0.3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-attempt-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-attempt">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-attempt-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-attempt">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User 1 ──* LearnerErrorSummary (student) -->
+        <mxCell id="assoc-user-summary" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;curved=1;" edge="1" source="class-user" target="class-learnererrorsummary" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="250" />
+              <mxPoint x="1100" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-summary-label" value="error_summaries" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-user-summary">
+          <mxGeometry x="0.3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-summary-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-summary">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-user-summary-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-user-summary">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="5" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- TextSubmission 1 ──* LearnerErrorSummary -->
+        <mxCell id="assoc-submission-summary" style="endArrow=open;endFill=0;endSize=12;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="class-submission" target="class-learnererrorsummary" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc-submission-summary-label" value="error_summaries" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" connectable="0" parent="assoc-submission-summary">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint x="25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-submission-summary-src" value="1" style="edgeLabel;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-submission-summary">
+          <mxGeometry x="-0.85" relative="1" as="geometry">
+            <mxPoint x="-15" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc-submission-summary-tgt" value="0..*" style="edgeLabel;html=1;align=right;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="assoc-submission-summary">
+          <mxGeometry x="0.85" relative="1" as="geometry">
+            <mxPoint x="-15" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== COLOUR LEGEND ==================== -->
+        <mxCell id="legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;fontSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="870" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-accounts" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="900" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-accounts-text" value="accounts app" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="90" y="897" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-classrooms" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="925" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-classrooms-text" value="classrooms app" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="90" y="922" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-submissions" value="" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="950" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-submissions-text" value="submissions app" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="90" y="947" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-feedback" value="" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="60" y="975" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-feedback-text" value="feedback app" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="90" y="972" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-analytics" value="" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1000" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-analytics-text" value="analytics app" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="90" y="997" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-enum" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1025" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-enum-text" value="«enumeration»" style="text;html=1;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1022" width="100" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
