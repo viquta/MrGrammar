@@ -32,6 +32,8 @@ class DetectedError(models.Model):
     hint_text = models.TextField(blank=True)
     correct_solution = models.TextField()
     languagetool_rule_id = models.CharField(max_length=100, blank=True)
+    spacy_pos_tag = models.CharField(max_length=20, blank=True)
+    error_context = models.JSONField(default=dict, blank=True)
     is_resolved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

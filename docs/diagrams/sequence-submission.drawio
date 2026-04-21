@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" modified="2026-04-19T12:00:00.000Z" agent="MrGrammar Documentation" version="24.0.0" type="device">
   <diagram id="sequence-submission" name="Submission &amp; Analysis Sequence">
-    <mxGraphModel dx="1622" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="1822" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -29,20 +29,28 @@
         </mxCell>
 
         <mxCell id="part-nlpsvc" value="ErrorDetection&#xa;Service" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="920" y="70" width="130" height="1060" as="geometry" />
+          <mxGeometry x="920" y="70" width="130" height="1260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-spacyproc" value="SpacyText&#xa;Processor" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="70" width="110" height="1260" as="geometry" />
         </mxCell>
 
         <mxCell id="part-lt" value="LanguageTool&#xa;(REST API)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="1140" y="70" width="120" height="1060" as="geometry" />
+          <mxGeometry x="1280" y="70" width="120" height="1260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-spacydet" value="SpacyGrammar&#xa;Detector" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="70" width="120" height="1260" as="geometry" />
         </mxCell>
 
         <mxCell id="part-db" value="Database&#xa;(PostgreSQL)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="1360" y="70" width="120" height="1060" as="geometry" />
+          <mxGeometry x="1650" y="70" width="120" height="1260" as="geometry" />
         </mxCell>
 
         <!-- ===== PHASE 1: Create Submission ===== -->
         <mxCell id="frag-create" value="Phase 1: Create Submission" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="30" y="130" width="1480" height="200" as="geometry" />
+          <mxGeometry x="30" y="130" width="1770" height="200" as="geometry" />
         </mxCell>
 
         <mxCell id="msg-1" value="1: Fill title + text content" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
@@ -62,13 +70,13 @@
         <mxCell id="msg-3" value="3: INSERT text_submission (status=SUBMITTED)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="545" y="250" as="sourcePoint" />
-            <mxPoint x="1420" y="250" as="targetPoint" />
+            <mxPoint x="1710" y="250" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <mxCell id="msg-4" value="4: submission record" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1420" y="275" as="sourcePoint" />
+            <mxPoint x="1710" y="275" as="sourcePoint" />
             <mxPoint x="545" y="275" as="targetPoint" />
           </mxGeometry>
         </mxCell>
@@ -81,8 +89,8 @@
         </mxCell>
 
         <!-- ===== PHASE 2: Trigger Analysis ===== -->
-        <mxCell id="frag-analyze" value="Phase 2: NLP Analysis" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="30" y="350" width="1480" height="380" as="geometry" />
+        <mxCell id="frag-analyze" value="Phase 2: NLP Analysis (dual-backend pipeline)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="350" width="1770" height="580" as="geometry" />
         </mxCell>
 
         <mxCell id="msg-6" value="6: Click 'Analyze' button" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
@@ -102,94 +110,140 @@
         <mxCell id="msg-8" value="8: UPDATE status = ANALYZING" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="765" y="460" as="sourcePoint" />
-            <mxPoint x="1420" y="460" as="targetPoint" />
+            <mxPoint x="1710" y="460" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-9" value="9: detect(text, language)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-9" value="9: analyze(submission)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="765" y="500" as="sourcePoint" />
             <mxPoint x="985" y="500" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
+        <!-- spaCy Doc creation -->
+        <mxCell id="msg-9a" value="9a: make_doc(text)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="985" y="530" as="sourcePoint" />
+            <mxPoint x="1155" y="530" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-9b" value="spaCy Doc (POS, NER, vectors)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1155" y="555" as="sourcePoint" />
+            <mxPoint x="985" y="555" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Backend 1: LanguageTool -->
         <mxCell id="msg-10" value="10: POST /v2/check&#xa;{text, language: 'de'}" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="985" y="540" as="sourcePoint" />
-            <mxPoint x="1200" y="540" as="targetPoint" />
+            <mxPoint x="985" y="590" as="sourcePoint" />
+            <mxPoint x="1340" y="590" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <mxCell id="msg-11" value="11: {matches: [{offset, length,&#xa;    rule, replacements, message}]}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1200" y="580" as="sourcePoint" />
-            <mxPoint x="985" y="580" as="targetPoint" />
+            <mxPoint x="1340" y="630" as="sourcePoint" />
+            <mxPoint x="985" y="630" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- Note: category mapping -->
-        <mxCell id="note-mapping" value="Map LanguageTool rule categories&#xa;to app ErrorCategory taxonomy.&#xa;Deduplicate by offset range." style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
-          <mxGeometry x="1020" y="595" width="210" height="55" as="geometry" />
-        </mxCell>
-
-        <mxCell id="msg-12" value="12: List[ErrorDict]" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <!-- Backend 2: SpacyGrammarDetector -->
+        <mxCell id="msg-11a" value="11a: detect(doc, text, language)&#xa;[OOV check, noun capitalisation]" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="985" y="665" as="sourcePoint" />
-            <mxPoint x="765" y="665" as="targetPoint" />
+            <mxPoint x="1520" y="665" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-13" value="13: BULK INSERT detected_errors" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-11b" value="11b: List[ErrorDict] (OOV + capitalisation)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="765" y="695" as="sourcePoint" />
-            <mxPoint x="1420" y="695" as="targetPoint" />
+            <mxPoint x="1520" y="700" as="sourcePoint" />
+            <mxPoint x="985" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Post-processing note -->
+        <mxCell id="note-mapping" value="Merge results from both backends.&#xa;Post-process with SpacyTextProcessor:&#xa;• categorize_error() — POS-based override&#xa;• extract_error_context() — JSON metadata&#xa;• get_pos_tag() — spacy_pos_tag field&#xa;Deduplicate by offset range." style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="715" width="250" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- spaCy post-processing -->
+        <mxCell id="msg-11c" value="11c: categorize_error(), extract_error_context(),&#xa;get_pos_tag() for each error" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="985" y="820" as="sourcePoint" />
+            <mxPoint x="1155" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-11d" value="enriched errors (category, context, POS)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1155" y="850" as="sourcePoint" />
+            <mxPoint x="985" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-12" value="12: List[ErrorDict] (merged + enriched)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="985" y="880" as="sourcePoint" />
+            <mxPoint x="765" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-13" value="13: BULK INSERT detected_errors&#xa;(incl. spacy_pos_tag, error_context)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="905" as="sourcePoint" />
+            <mxPoint x="1710" y="905" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <mxCell id="msg-14" value="14: 200 OK {submission_id,&#xa;    errors_found: N, status: 'in_review'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="765" y="720" as="sourcePoint" />
-            <mxPoint x="325" y="720" as="targetPoint" />
+            <mxPoint x="765" y="925" as="sourcePoint" />
+            <mxPoint x="325" y="925" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <!-- ===== PHASE 3: Fetch Errors ===== -->
         <mxCell id="frag-fetch" value="Phase 3: Fetch &amp; Display Errors" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="30" y="750" width="1480" height="200" as="geometry" />
+          <mxGeometry x="30" y="950" width="1770" height="200" as="geometry" />
         </mxCell>
 
         <mxCell id="msg-15" value="15: GET /api/feedback/submissions/{id}/errors/" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="325" y="800" as="sourcePoint" />
-            <mxPoint x="545" y="800" as="targetPoint" />
+            <mxPoint x="325" y="1000" as="sourcePoint" />
+            <mxPoint x="545" y="1000" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <mxCell id="msg-16" value="16: SELECT detected_errors WHERE submission_id" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="545" y="835" as="sourcePoint" />
-            <mxPoint x="1420" y="835" as="targetPoint" />
+            <mxPoint x="545" y="1035" as="sourcePoint" />
+            <mxPoint x="1710" y="1035" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <mxCell id="msg-17" value="17: error records" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1420" y="860" as="sourcePoint" />
-            <mxPoint x="545" y="860" as="targetPoint" />
+            <mxPoint x="1710" y="1060" as="sourcePoint" />
+            <mxPoint x="545" y="1060" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-18" value="18: 200 OK [{error_category,&#xa;    start_offset, end_offset, ...}]" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-18" value="18: 200 OK [{error_category,&#xa;    start_offset, end_offset,&#xa;    spacy_pos_tag, error_context, ...}]" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="545" y="895" as="sourcePoint" />
-            <mxPoint x="325" y="895" as="targetPoint" />
+            <mxPoint x="545" y="1095" as="sourcePoint" />
+            <mxPoint x="325" y="1095" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <mxCell id="msg-19" value="19: Render text with inline&#xa;error highlights by offset" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="325" y="930" as="sourcePoint" />
-            <mxPoint x="115" y="930" as="targetPoint" />
+            <mxPoint x="325" y="1130" as="sourcePoint" />
+            <mxPoint x="115" y="1130" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 

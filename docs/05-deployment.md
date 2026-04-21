@@ -113,6 +113,8 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | `POSTGRES_HOST` | `db` | Database hostname (Docker service name) |
 | `POSTGRES_PORT` | `5432` | Database port |
 | `LANGUAGETOOL_URL` | `http://languagetool:8010/v2` | LanguageTool API base URL |
+| `SPACY_MODEL` | `de_core_news_md` | spaCy model name loaded by `SpacyTextProcessor` |
+| `SPACY_SENTENCE_SPLIT` | `True` | Whether to use spaCy sentence splitting for per-sentence LanguageTool analysis |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Frontend Service
@@ -175,6 +177,7 @@ Docker Compose starts services in dependency order:
 | Base image | `python:3.12-slim` |
 | System deps | `libpq-dev`, `gcc` (for psycopg2 compilation) |
 | Python deps | `pip install -r requirements.txt` |
+| spaCy model | `python -m spacy download de_core_news_md` (~40 MB German model with word vectors, POS, NER) |
 | Working dir | `/app` |
 | Exposed port | `8000` |
 | CMD | `python manage.py runserver 0.0.0.0:8000` |

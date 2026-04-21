@@ -123,4 +123,6 @@ MRGRAMMAR = {
     'HINT_THRESHOLD': int(os.environ.get('HINT_THRESHOLD', '1')),
     'SUPPORTED_LANGUAGES': os.environ.get('SUPPORTED_LANGUAGES', 'de').split(','),
     'LANGUAGETOOL_URL': os.environ.get('LANGUAGETOOL_URL', 'http://localhost:8010/v2'),
+    'SPACY_MODEL': os.environ.get('SPACY_MODEL', 'de_core_news_md'),
+    'SPACY_SENTENCE_SPLIT': os.environ.get('SPACY_SENTENCE_SPLIT', 'True').lower() in ('true', '1', 'yes'),
 }

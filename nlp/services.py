@@ -6,6 +6,7 @@ from django.conf import settings
 
 from feedback.models import DetectedError
 from submissions.models import TextSubmission
+from .spacy_processor import SpacyTextProcessor, SentenceSpan
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class LanguageToolClient:
             logger.error('LanguageTool request failed: %s', e)
             return []
 
+<<<<<<< Updated upstream
         try:
             payload = response.json()
         except ValueError as e:
@@ -52,7 +54,47 @@ class LanguageToolClient:
 
         matches = payload.get('matches', [])
         errors = []
+=======
+        matches = response.json().get('matches', [])
+        return self._parse_matches(matches, text, base_offset=0)
+>>>>>>> Stashed changes
 
+    def detect_by_sentences(
+        self,
+        sentences: list[SentenceSpan],
+        language: str,
+    ) -> list[dict]:
+        """Send each sentence individually and remap offsets to original text."""
+        all_errors = []
+        for sentence in sentences:
+            try:
+                response = requests.post(
+                    f'{self.base_url}/check',
+                    data={'text': sentence.text, 'language': language},
+                    timeout=30,
+                )
+                response.raise_for_status()
+            except requests.RequestException as e:
+                logger.error(
+                    'LanguageTool request failed for sentence at offset %d: %s',
+                    sentence.start_offset, e,
+                )
+                continue
+
+            matches = response.json().get('matches', [])
+            errors = self._parse_matches(
+                matches, sentence.text, base_offset=sentence.start_offset,
+            )
+            all_errors.extend(errors)
+        return all_errors
+
+    def _parse_matches(
+        self,
+        matches: list[dict],
+        text: str,
+        base_offset: int = 0,
+    ) -> list[dict]:
+        errors = []
         for match in matches:
             try:
                 start_offset = int(match.get('offset', 0))
@@ -78,16 +120,29 @@ class LanguageToolClient:
 
             lt_category = str(match.get('rule', {}).get('category', {}).get('id', ''))
 
+            local_start = match['offset']
+            local_end = match['offset'] + match['length']
+
             errors.append({
+<<<<<<< Updated upstream
                 'start_offset': start_offset,
                 'end_offset': end_offset,
                 'original_text': text[start_offset:end_offset],
+=======
+                'start_offset': base_offset + local_start,
+                'end_offset': base_offset + local_end,
+                'original_text': text[local_start:local_end],
+>>>>>>> Stashed changes
                 'correct_solution': best_replacement,
                 'hint_text': str(match.get('message', '')),
                 'error_category': self._map_category(lt_category, match),
+<<<<<<< Updated upstream
                 'languagetool_rule_id': str(match.get('rule', {}).get('id', '')),
+=======
+                'languagetool_rule_id': match.get('rule', {}).get('id', ''),
+                'lt_category_id': lt_category,
+>>>>>>> Stashed changes
             })
-
         return errors
 
     def _map_category(self, lt_category: str, match: dict) -> str:
@@ -103,23 +158,162 @@ class LanguageToolClient:
         return self.CATEGORY_MAP.get(lt_category, DetectedError.Category.OTHER)
 
 
+class SpacyGrammarDetector:
+    """
+    Uses spaCy's German model to catch errors that LanguageTool misses:
+    - Out-of-vocabulary words (misspellings like 'hauptjobb', 'bestehd')
+    - Capitalization of nouns (German nouns must be capitalized)
+    - Basic case/gender agreement on articles + nouns
+    """
+
+    # Words that are commonly lowercase even though they could look like nouns
+    LOWERCASE_OK = frozenset({
+        'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'und', 'oder', 'aber',
+        'denn', 'weil', 'dass', 'wenn', 'als', 'ob', 'nicht', 'auch', 'noch',
+        'schon', 'sehr', 'ganz', 'hier', 'dort', 'jetzt', 'dann', 'nur',
+        'gerade', 'immer', 'nie', 'oft', 'viel', 'wenig', 'mehr', 'so',
+        'ja', 'nein', 'kein', 'keine', 'keinen', 'keine', 'keinem', 'keiner',
+    })
+
+    def __init__(self):
+        self.processor = SpacyTextProcessor()
+
+    def detect(self, text: str, language: str) -> list[dict]:
+        if language not in ('de', 'de-DE', 'de-AT', 'de-CH'):
+            return []
+
+        doc = self.processor.make_doc(text)
+        errors = []
+
+        for token in doc:
+            # Skip punctuation, spaces, numbers
+            if token.is_punct or token.is_space or token.like_num:
+                continue
+            # Skip very short tokens
+            if len(token.text) < 2:
+                continue
+
+            # ── Check 1: Out-of-vocabulary (likely misspelling) ──
+            if not token.is_oov:
+                # Token is in vocabulary — check capitalization for nouns
+                self._check_noun_capitalization(token, doc, errors, text)
+            else:
+                # Token is OOV — likely a spelling error
+                self._check_oov_token(token, doc, errors, text)
+
+        return errors
+
+    def _check_oov_token(self, token, doc, errors: list, text: str):
+        """Flag out-of-vocabulary tokens as potential spelling errors."""
+        # Skip if it's a recognized named entity (person, location, org)
+        if token.ent_type_ in ('PER', 'LOC', 'ORG'):
+            return
+
+        # Try to find the closest in-vocabulary word
+        suggestion = self._find_similar_word(token)
+        hint = f'"{token.text}" wurde nicht im Wörterbuch gefunden.'
+        if suggestion:
+            hint = f'Meinten Sie "{suggestion}"?'
+
+        errors.append({
+            'start_offset': token.idx,
+            'end_offset': token.idx + len(token.text),
+            'original_text': token.text,
+            'correct_solution': suggestion or token.text,
+            'hint_text': hint,
+            'error_category': DetectedError.Category.SPELLING,
+            'languagetool_rule_id': 'SPACY_OOV',
+        })
+
+    def _check_noun_capitalization(self, token, doc, errors: list, text: str):
+        """In German, nouns must be capitalized."""
+        if token.pos_ != 'NOUN':
+            return
+        if token.text[0].isupper():
+            return
+        if token.text.lower() in self.LOWERCASE_OK:
+            return
+        # Skip tokens that are part of named entities
+        if token.ent_type_:
+            return
+
+        capitalized = token.text[0].upper() + token.text[1:]
+        errors.append({
+            'start_offset': token.idx,
+            'end_offset': token.idx + len(token.text),
+            'original_text': token.text,
+            'correct_solution': capitalized,
+            'hint_text': f'Deutsche Substantive werden großgeschrieben: "{capitalized}".',
+            'error_category': DetectedError.Category.SPELLING,
+            'languagetool_rule_id': 'SPACY_NOUN_CAPITALIZATION',
+        })
+
+    def _find_similar_word(self, token) -> str:
+        """Use Levenshtein distance over the model's vector keys to suggest corrections."""
+        from Levenshtein import distance as lev_distance
+
+        nlp = self.processor.nlp
+        token_text = token.text.lower()
+        target_len = len(token_text)
+
+        best_word = ''
+        best_dist = float('inf')
+
+        # The vectors table contains the actual word list (~20k words)
+        for key in nlp.vocab.vectors.keys():
+            word = nlp.vocab.strings[key]
+            if not word.isalpha():
+                continue
+            if abs(len(word) - target_len) > 2:
+                continue
+
+            dist = lev_distance(token_text, word.lower())
+            if dist < best_dist:
+                best_dist = dist
+                best_word = word
+
+        # Only suggest if edit distance is small (1-2 edits)
+        if best_dist <= 2 and best_word:
+            # Preserve original capitalization intent
+            if token.text[0].isupper():
+                best_word = best_word[0].upper() + best_word[1:]
+            return best_word
+        return ''
+
+
 class ErrorDetectionService:
     """Orchestrates error detection using one or more backends (Strategy pattern)."""
 
     def __init__(self, detectors: list[ErrorDetector] | None = None):
         if detectors is None:
-            self.detectors = [LanguageToolClient()]
+            self.detectors = [LanguageToolClient(), SpacyGrammarDetector()]
         else:
             self.detectors = detectors
+        self.spacy_processor = SpacyTextProcessor()
+        self.use_sentence_split = settings.MRGRAMMAR.get('SPACY_SENTENCE_SPLIT', True)
 
     def analyze(self, submission: TextSubmission) -> list[DetectedError]:
+        text = submission.content
+
+        # ── Create spaCy doc for POS/NER analysis ──
+        doc = self.spacy_processor.make_doc(text)
+
+        # ── Detection ──
         all_raw_errors = []
         for detector in self.detectors:
+<<<<<<< Updated upstream
             try:
                 raw_errors = detector.detect(submission.content, submission.language)
             except Exception:
                 logger.exception('Detector failed for submission_id=%s', submission.id)
                 continue
+=======
+            if self.use_sentence_split and hasattr(detector, 'detect_by_sentences'):
+                sentences = self.spacy_processor.split_sentences(text)
+                raw_errors = detector.detect_by_sentences(sentences, submission.language)
+            else:
+                raw_errors = detector.detect(text, submission.language)
+>>>>>>> Stashed changes
             all_raw_errors.extend(raw_errors)
 
         # Deduplicate by offset range
@@ -155,8 +349,10 @@ class ErrorDetectionService:
                     'languagetool_rule_id': str(err.get('languagetool_rule_id', '')),
                 })
 
+        # ── Post-processing: enrich with spaCy ──
         detected = []
         for err in unique_errors:
+<<<<<<< Updated upstream
             category = err.get('error_category', DetectedError.Category.OTHER)
             valid_categories = {choice for choice, _label in DetectedError.Category.choices}
             if category not in valid_categories:
@@ -174,8 +370,39 @@ class ErrorDetectionService:
                         correct_solution=err['correct_solution'],
                         languagetool_rule_id=err.get('languagetool_rule_id', ''),
                     )
+=======
+            # Override category using POS/morphology
+            enhanced_category = self.spacy_processor.categorize_error(
+                original_text=err['original_text'],
+                lt_category=err['error_category'],
+                lt_rule_id=err.get('languagetool_rule_id', ''),
+                doc=doc,
+                start_offset=err['start_offset'],
+            )
+
+            # Extract linguistic context
+            error_context = self.spacy_processor.extract_error_context(
+                doc, err['start_offset'], err['end_offset'],
+            )
+            spacy_pos = self.spacy_processor.get_pos_tag(doc, err['start_offset'])
+
+            detected.append(
+                DetectedError.objects.create(
+                    submission=submission,
+                    error_category=enhanced_category,
+                    start_offset=err['start_offset'],
+                    end_offset=err['end_offset'],
+                    original_text=err['original_text'],
+                    hint_text=err['hint_text'],
+                    correct_solution=err['correct_solution'],
+                    languagetool_rule_id=err.get('languagetool_rule_id', ''),
+                    spacy_pos_tag=spacy_pos,
+                    error_context=error_context,
+>>>>>>> Stashed changes
                 )
             except Exception:
                 logger.exception('Failed creating DetectedError for submission_id=%s payload=%s', submission.id, err)
+
+        return detected
 
         return detected

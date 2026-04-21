@@ -30,7 +30,9 @@
 | | SimpleJWT | 5.5 | JSON Web Token authentication |
 | | django-cors-headers | — | Cross-origin request support |
 | **NLP** | LanguageTool | self-hosted | Grammar and spell checking (German) |
-| | RapidFuzz / Levenshtein | — | Fuzzy string matching for correction validation |
+| | spaCy | 3.8 | Text cleaning, sentence splitting, POS tagging, OOV spell detection |
+| | `de_core_news_md` | 3.8 | German spaCy model (~40 MB) with word vectors, POS, NER |
+| | RapidFuzz / Levenshtein | — | Fuzzy string matching for correction validation and spell suggestions |
 | **Database** | PostgreSQL | 16 | Relational data persistence |
 | **Infrastructure** | Docker Compose | — | Multi-container orchestration |
 | | Node 22 (Alpine) | — | Frontend container runtime |
@@ -62,9 +64,10 @@ The system follows a four-layer architecture with clear separation of concerns.
 ┌─────────────────────────────────────────────────────────┐
 │                    Service Layer                         │
 │  CorrectionWorkflowService  · ErrorDetectionService     │
-│  LanguageToolClient         · AnalyticsService           │
-│         (feedback/services.py, nlp/services.py,          │
-│               analytics/services.py)                     │
+│  LanguageToolClient · SpacyGrammarDetector               │
+│  SpacyTextProcessor · AnalyticsService                   │
+│    (feedback/services.py, nlp/services.py,               │
+│     nlp/spacy_processor.py, analytics/services.py)       │
 └───────────┬─────────────────────────────┬───────────────┘
             │  Django ORM                 │  HTTP
             ▼                             ▼
@@ -81,7 +84,7 @@ The system follows a four-layer architecture with clear separation of concerns.
 
 **API Gateway Layer** — DRF views handle HTTP request/response serialisation, input validation, and permission enforcement. Each Django app (`accounts`, `classrooms`, `submissions`, `feedback`, `nlp`, `analytics`) exposes its own URL namespace under `/api/`. Role-based permissions are enforced via custom permission classes.
 
-**Service Layer** — Business logic is encapsulated in service classes that are independent of the HTTP layer. This includes the correction workflow (Levenshtein similarity checking, progressive hint disclosure), NLP error detection (LanguageTool integration with category mapping), and analytics aggregation.
+**Service Layer** — Business logic is encapsulated in service classes that are independent of the HTTP layer. This includes the correction workflow (Levenshtein similarity checking, progressive hint disclosure), NLP error detection (a dual-backend pipeline combining LanguageTool for grammar rules and spaCy for OOV spelling detection, POS-based error categorisation, and linguistic context extraction), and analytics aggregation.
 
 **Data Layer** — PostgreSQL stores all persistent state via Django's ORM. The schema comprises seven models across five apps (see [Data Model](02-data-model.md)).
 
@@ -131,15 +134,37 @@ The frontend stores the access and refresh tokens in `localStorage`. Every API r
 
 ### Strategy Pattern — NLP Error Detection
 
-The `ErrorDetectionService` in `nlp/services.py` accepts a pluggable detector backend. The default implementation, `LanguageToolClient`, calls the self-hosted LanguageTool REST API. This design allows future addition of alternative NLP backends (e.g., a neural model) without modifying the service orchestration logic.
+The `ErrorDetectionService` in `nlp/services.py` accepts pluggable detector backends via the Strategy pattern. Two backends are active by default:
+
+1. **`LanguageToolClient`** — calls the self-hosted LanguageTool REST API for grammar rule-based detection. Supports per-sentence detection via `detect_by_sentences()`, where spaCy splits the text into sentences and each sentence is checked individually to avoid cross-sentence confusion.
+2. **`SpacyGrammarDetector`** — uses the spaCy German model (`de_core_news_md`) to catch errors that LanguageTool misses, particularly out-of-vocabulary (OOV) misspellings common in learner German (e.g., "hauptjobb" → "Hauptjob") and missing noun capitalisation. Suggestions are generated via Levenshtein distance over the model's vector vocabulary.
+
+Both backends feed into a shared post-processing step where `SpacyTextProcessor` enriches each error with POS-based category overrides and linguistic context metadata.
 
 ```
 ErrorDetectionService
-    ├── detect(text, language) → List[ErrorDict]
-    └── detector: DetectorBackend
-            ├── LanguageToolClient (default)
-            └── (future backends)
+    ├── analyze(submission) → List[DetectedError]
+    ├── SpacyTextProcessor       (pre/post-processing)
+    └── detectors: List[ErrorDetector]
+            ├── LanguageToolClient         (grammar rules)
+            │       └── detect_by_sentences()  (spaCy sentence split)
+            └── SpacyGrammarDetector       (OOV, capitalisation)
 ```
+
+#### SpacyTextProcessor (`nlp/spacy_processor.py`)
+
+Provides all spaCy operations used by the pipeline:
+
+| Method | Purpose |
+|--------|---------|
+| `clean_text(text)` | Normalise Unicode (NFC), collapse whitespace, strip invisible characters |
+| `make_doc(text)` | Create a spaCy `Doc` for POS/NER analysis |
+| `split_sentences(text)` | Sentence tokenisation with character offsets mapped back to the original text |
+| `categorize_error(…)` | Override LanguageTool's category using POS/morphology (DET→ARTICLE, ADP→PREPOSITION, VERB/AUX→VERB_TENSE) |
+| `extract_error_context(…)` | Return surrounding POS tags, dependency relations, and named entities as a JSON dict |
+| `get_pos_tag(doc, offset)` | Return the POS tag for the token at a character offset |
+
+The spaCy model is loaded once via a thread-safe singleton (`_SpacyModelHolder`) to avoid reloading the ~40 MB model on every request.
 
 The `LanguageToolClient` maps LanguageTool's internal rule categories to the application's seven error categories:
 
@@ -191,7 +216,7 @@ The backend is organised into six Django apps, each with a focused domain respon
 | `classrooms` | Classroom & membership management | `Classroom`, `ClassroomMembership` models, member CRUD |
 | `submissions` | Student text submissions | `TextSubmission` model with status workflow |
 | `feedback` | Error records & correction workflow | `DetectedError`, `CorrectionAttempt` models, `CorrectionWorkflowService` |
-| `nlp` | NLP error detection pipeline | `ErrorDetectionService`, `LanguageToolClient` |
+| `nlp` | NLP error detection pipeline | `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector`, `SpacyTextProcessor` |
 | `analytics` | Progress tracking & statistics | `LearnerErrorSummary` model, `AnalyticsService` |
 
 The frontend is a SvelteKit application with five routes:

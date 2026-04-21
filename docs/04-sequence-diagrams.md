@@ -89,7 +89,9 @@ This document describes the three core workflows of MrGrammar using UML sequence
 | **SubmissionView (DRF)** | Handles CRUD operations for text submissions |
 | **AnalyzeView (DRF)** | Triggers NLP analysis pipeline |
 | **ErrorDetectionService** | Orchestrates error detection with pluggable backends |
+| **SpacyTextProcessor** | Text cleaning, sentence splitting, POS analysis, and error post-processing (`nlp/spacy_processor.py`) |
 | **LanguageTool (REST API)** | Self-hosted grammar checker (`/v2/check`) |
+| **SpacyGrammarDetector** | OOV spell detection and noun capitalisation checking via spaCy (`nlp/services.py`) |
 | **Database (PostgreSQL)** | Stores submissions and detected errors |
 
 ### Flow Description
@@ -107,13 +109,16 @@ This document describes the three core workflows of MrGrammar using UML sequence
 6. The student clicks the "Analyze" button on the submission detail page.
 7. The frontend sends `POST /api/nlp/submissions/{id}/analyze/`.
 8. The `AnalyzeView` validates ownership (`student == request.user`) and that the submission hasn't already been analyzed (`status == SUBMITTED`). It then updates the status to `ANALYZING`.
-9. The view delegates to `ErrorDetectionService.detect(text, language)`.
-10. The `ErrorDetectionService` calls its configured backend — by default, `LanguageToolClient` — which sends `POST /v2/check` to the self-hosted LanguageTool instance with the text and language (`de`).
-11. LanguageTool returns a list of matches, each containing the character offset, length, rule category, replacement suggestions, and a human-readable message.
-12. The `ErrorDetectionService` performs two transformations:
-    - **Category mapping**: Maps LanguageTool's internal rule categories (e.g., `ARTICLE`, `DER_DIE_DAS`, `TYPOS`) to the application's seven-category taxonomy (see [Data Model — ErrorCategory](02-data-model.md#errorcategory)).
-    - **Deduplication**: Removes overlapping matches by character offset range.
-13. The view batch-creates `DetectedError` records in the database and updates the submission status to `IN_REVIEW`.
+9. The view delegates to `ErrorDetectionService.analyze(submission)`.
+10. The `ErrorDetectionService` creates a spaCy `Doc` from the original submission text via `SpacyTextProcessor.make_doc()`, then runs its configured backends sequentially:
+    - **LanguageToolClient**: sends `POST /v2/check` to the self-hosted LanguageTool instance. Optionally splits text into sentences using `SpacyTextProcessor.split_sentences()` and checks each sentence individually, remapping offsets back to the original text.
+    - **SpacyGrammarDetector**: iterates over spaCy tokens to detect out-of-vocabulary (OOV) misspellings and missing noun capitalisation. Skips named entities (PER, LOC, ORG) and uppercase proper nouns. Generates correction suggestions via Levenshtein distance over the model's vector vocabulary.
+11. Both backends return lists of raw error dicts (offset, length, category, message, replacement).
+12. The `ErrorDetectionService` post-processes each error using `SpacyTextProcessor`:
+    - **Category override**: `categorize_error()` uses POS/morphology tags to refine the category (e.g., DET→ARTICLE, ADP→PREPOSITION, VERB/AUX→VERB_TENSE).
+    - **Context extraction**: `extract_error_context()` records surrounding POS tags, dependency relations, and named entities as JSON.
+    - **POS tag**: `get_pos_tag()` records the spaCy POS tag at the error offset.
+13. The view deduplicates errors by character offset range and batch-creates `DetectedError` records (including `spacy_pos_tag` and `error_context` fields) in the database, then updates the submission status to `IN_REVIEW`.
 14. The view responds with `200 OK` containing the submission ID, error count, and new status.
 
 #### Phase 3: Fetch & Display Errors
@@ -130,8 +135,9 @@ This document describes the three core workflows of MrGrammar using UML sequence
 |-----------|--------|
 | Submission CRUD | `submissions/views.py` → `SubmissionListCreateView` |
 | NLP trigger | `nlp/views.py` → `AnalyzeSubmissionView` |
-| Error detection | `nlp/services.py` → `ErrorDetectionService`, `LanguageToolClient` |
-| Category mapping | `nlp/services.py` → `LanguageToolClient._map_category()` |
+| Error detection | `nlp/services.py` → `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector` |
+| spaCy processing | `nlp/spacy_processor.py` → `SpacyTextProcessor` |
+| Category mapping | `nlp/services.py` → `LanguageToolClient._map_category()`, `SpacyTextProcessor.categorize_error()` |
 | Error list | `feedback/views.py` → `SubmissionErrorsView` |
 | Frontend submission page | `frontend/src/routes/submissions/[id]/+page.svelte` |
 | LanguageTool config | `mrgrammar/settings.py` → `MRGRAMMAR['LANGUAGETOOL_URL']` |

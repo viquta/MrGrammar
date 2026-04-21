@@ -183,6 +183,8 @@ Represents a single error detected in a student's text by the NLP pipeline. Char
 | `hint_text` | Text | blank allowed | — | Pedagogical hint (from LanguageTool message) |
 | `correct_solution` | Text | — | — | Correct replacement text |
 | `languagetool_rule_id` | String(100) | blank allowed | — | LanguageTool rule identifier for traceability |
+| `spacy_pos_tag` | String(20) | blank allowed | `''` | spaCy POS tag of the token at the error offset (e.g. `NOUN`, `VERB`) |
+| `error_context` | JSON | blank allowed | `{}` | Linguistic context from spaCy: surrounding POS tags, dependency relations, named entities |
 | `is_resolved` | Boolean | — | `False` | Whether the student has successfully corrected this error |
 | `created_at` | DateTime | auto_now_add | — | Detection timestamp |
 

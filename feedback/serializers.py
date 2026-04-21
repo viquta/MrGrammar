@@ -29,6 +29,7 @@ class DetectedErrorDetailSerializer(serializers.ModelSerializer):
             'id', 'submission', 'error_category', 'severity',
             'start_offset', 'end_offset', 'original_text',
             'is_resolved', 'attempts', 'created_at',
+            'spacy_pos_tag', 'error_context',
         ]
 
     def get_attempts(self, obj):

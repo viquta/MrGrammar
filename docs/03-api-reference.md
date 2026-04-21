@@ -641,12 +641,16 @@ Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool 
 
 1. Validate submission ownership and status
 2. Set status to `ANALYZING`
-3. Call LanguageTool `POST /v2/check` with `text` and `language`
-4. Map each match to the application's `ErrorCategory` taxonomy
-5. Deduplicate by character offset range
-6. Batch-create `DetectedError` records
-7. Set status to `IN_REVIEW`
-8. Return error count
+3. Create a spaCy `Doc` from the original submission text (using `SpacyTextProcessor.make_doc()`)
+4. Run **two** error-detection backends in sequence:
+   - **LanguageToolClient** — sends `POST /v2/check` to the self-hosted LanguageTool instance (optionally per-sentence via `detect_by_sentences()` using spaCy sentence splitting)
+   - **SpacyGrammarDetector** — flags out-of-vocabulary (OOV) misspellings and missing noun capitalisation using the `de_core_news_md` model; generates correction suggestions via Levenshtein distance over the model's vector vocabulary
+5. Merge results from both backends and map each match to the application's `ErrorCategory` taxonomy
+6. Post-process each error with spaCy: override category using POS tags (`categorize_error()`), extract linguistic context (`extract_error_context()`), and record the POS tag (`get_pos_tag()`)
+7. Deduplicate by character offset range
+8. Batch-create `DetectedError` records (including `spacy_pos_tag` and `error_context` fields)
+9. Set status to `IN_REVIEW`
+10. Return error count
 
 ---
 
