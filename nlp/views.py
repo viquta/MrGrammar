@@ -1,9 +1,14 @@
+import logging
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from submissions.models import TextSubmission
 from .services import ErrorDetectionService
+
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyzeSubmissionView(APIView):
@@ -28,7 +33,16 @@ class AnalyzeSubmissionView(APIView):
         submission.save(update_fields=['status'])
 
         service = ErrorDetectionService()
-        errors = service.analyze(submission)
+        try:
+            errors = service.analyze(submission)
+        except Exception:
+            logger.exception('Submission analysis failed for submission_id=%s', submission.id)
+            submission.status = TextSubmission.Status.SUBMITTED
+            submission.save(update_fields=['status'])
+            return Response(
+                {'detail': 'Analysis failed. Please try again.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         submission.status = TextSubmission.Status.IN_REVIEW
         submission.save(update_fields=['status'])

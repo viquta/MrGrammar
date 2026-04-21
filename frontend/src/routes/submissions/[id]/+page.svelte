@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth';
-	import { api } from '$lib/api';
+	import { api, ApiError } from '$lib/api';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { TextSubmission, DetectedError, CorrectionAttemptResult } from '$lib/types';
@@ -12,6 +12,7 @@
 	let attemptText = $state('');
 	let lastResult = $state<CorrectionAttemptResult | null>(null);
 	let analyzing = $state(false);
+	let analyzeError = $state('');
 	let loading = $state(true);
 
 	const id = page.params.id;
@@ -53,6 +54,7 @@
 
 	async function analyzeText() {
 		analyzing = true;
+		analyzeError = '';
 		try {
 			await api.post(`/nlp/submissions/${id}/analyze/`, {}, $auth.token);
 			const errRes = await api.get<DetectedError[]>(
@@ -61,6 +63,15 @@
 			);
 			errors = errRes;
 			if (submission) submission.status = 'in_review';
+		} catch (error) {
+			if (error instanceof ApiError && typeof error.data === 'object' && error.data !== null && 'detail' in error.data) {
+				analyzeError = String((error.data as { detail?: string }).detail ?? 'Analysis failed. Please try again.');
+			} else {
+				analyzeError = 'Analysis failed. Please try again.';
+			}
+			if (submission && submission.status === 'analyzing') {
+				submission.status = 'submitted';
+			}
 		} finally {
 			analyzing = false;
 		}
@@ -122,6 +133,12 @@
 		submission ? buildHighlightedText(submission.content, errors) : []
 	);
 
+	let canAnalyze = $derived(
+		submission
+			? submission.status === 'submitted' || (submission.status === 'analyzing' && errors.length === 0)
+			: false
+	);
+
 	let resolvedCount = $derived(errors.filter((e) => e.is_resolved).length);
 </script>
 
@@ -145,7 +162,7 @@
 			{/if}
 		</div>
 
-		{#if submission.status === 'submitted'}
+		{#if canAnalyze}
 			<div class="bg-white p-6 rounded-lg shadow mb-6">
 				<p class="text-gray-700 whitespace-pre-wrap">{submission.content}</p>
 				<button
@@ -153,8 +170,11 @@
 					disabled={analyzing}
 					class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
 				>
-					{analyzing ? 'Analyzing...' : 'Analyze Text'}
+					{analyzing ? 'Analyzing...' : submission.status === 'analyzing' ? 'Retry Analysis' : 'Analyze Text'}
 				</button>
+				{#if analyzeError}
+					<p class="mt-3 text-sm text-red-600">{analyzeError}</p>
+				{/if}
 			</div>
 		{:else}
 			<!-- Main content area: highlighted text + correction panel -->

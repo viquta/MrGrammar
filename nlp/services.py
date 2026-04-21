@@ -44,22 +44,48 @@ class LanguageToolClient:
             logger.error('LanguageTool request failed: %s', e)
             return []
 
-        matches = response.json().get('matches', [])
+        try:
+            payload = response.json()
+        except ValueError as e:
+            logger.error('LanguageTool returned invalid JSON: %s', e)
+            return []
+
+        matches = payload.get('matches', [])
         errors = []
 
         for match in matches:
+            try:
+                start_offset = int(match.get('offset', 0))
+                length = int(match.get('length', 0))
+            except (TypeError, ValueError):
+                logger.warning('Skipping malformed LanguageTool match offsets: %s', match)
+                continue
+
+            end_offset = start_offset + length
+            if start_offset < 0 or length <= 0 or end_offset > len(text):
+                logger.warning(
+                    'Skipping out-of-range LanguageTool match: start=%s length=%s text_len=%s',
+                    start_offset,
+                    length,
+                    len(text),
+                )
+                continue
+
             replacements = match.get('replacements', [])
-            best_replacement = replacements[0]['value'] if replacements else ''
-            lt_category = match.get('rule', {}).get('category', {}).get('id', '')
+            best_replacement = ''
+            if replacements and isinstance(replacements[0], dict):
+                best_replacement = str(replacements[0].get('value', ''))
+
+            lt_category = str(match.get('rule', {}).get('category', {}).get('id', ''))
 
             errors.append({
-                'start_offset': match['offset'],
-                'end_offset': match['offset'] + match['length'],
-                'original_text': text[match['offset']:match['offset'] + match['length']],
+                'start_offset': start_offset,
+                'end_offset': end_offset,
+                'original_text': text[start_offset:end_offset],
                 'correct_solution': best_replacement,
-                'hint_text': match.get('message', ''),
+                'hint_text': str(match.get('message', '')),
                 'error_category': self._map_category(lt_category, match),
-                'languagetool_rule_id': match.get('rule', {}).get('id', ''),
+                'languagetool_rule_id': str(match.get('rule', {}).get('id', '')),
             })
 
         return errors
@@ -89,31 +115,67 @@ class ErrorDetectionService:
     def analyze(self, submission: TextSubmission) -> list[DetectedError]:
         all_raw_errors = []
         for detector in self.detectors:
-            raw_errors = detector.detect(submission.content, submission.language)
+            try:
+                raw_errors = detector.detect(submission.content, submission.language)
+            except Exception:
+                logger.exception('Detector failed for submission_id=%s', submission.id)
+                continue
             all_raw_errors.extend(raw_errors)
 
         # Deduplicate by offset range
         seen_ranges = set()
         unique_errors = []
         for err in all_raw_errors:
-            key = (err['start_offset'], err['end_offset'])
+            try:
+                start_offset = int(err.get('start_offset', 0))
+                end_offset = int(err.get('end_offset', 0))
+            except (AttributeError, TypeError, ValueError):
+                logger.warning('Skipping malformed raw error payload: %s', err)
+                continue
+
+            if start_offset < 0 or end_offset <= start_offset or end_offset > len(submission.content):
+                logger.warning(
+                    'Skipping invalid raw error range: start=%s end=%s content_len=%s',
+                    start_offset,
+                    end_offset,
+                    len(submission.content),
+                )
+                continue
+
+            key = (start_offset, end_offset)
             if key not in seen_ranges:
                 seen_ranges.add(key)
-                unique_errors.append(err)
+                unique_errors.append({
+                    'start_offset': start_offset,
+                    'end_offset': end_offset,
+                    'original_text': str(err.get('original_text', submission.content[start_offset:end_offset])),
+                    'hint_text': str(err.get('hint_text', '')),
+                    'correct_solution': str(err.get('correct_solution', '')),
+                    'error_category': str(err.get('error_category', DetectedError.Category.OTHER)),
+                    'languagetool_rule_id': str(err.get('languagetool_rule_id', '')),
+                })
 
         detected = []
         for err in unique_errors:
-            detected.append(
-                DetectedError.objects.create(
-                    submission=submission,
-                    error_category=err['error_category'],
-                    start_offset=err['start_offset'],
-                    end_offset=err['end_offset'],
-                    original_text=err['original_text'],
-                    hint_text=err['hint_text'],
-                    correct_solution=err['correct_solution'],
-                    languagetool_rule_id=err.get('languagetool_rule_id', ''),
+            category = err.get('error_category', DetectedError.Category.OTHER)
+            valid_categories = {choice for choice, _label in DetectedError.Category.choices}
+            if category not in valid_categories:
+                category = DetectedError.Category.OTHER
+
+            try:
+                detected.append(
+                    DetectedError.objects.create(
+                        submission=submission,
+                        error_category=category,
+                        start_offset=err['start_offset'],
+                        end_offset=err['end_offset'],
+                        original_text=err['original_text'],
+                        hint_text=err['hint_text'],
+                        correct_solution=err['correct_solution'],
+                        languagetool_rule_id=err.get('languagetool_rule_id', ''),
+                    )
                 )
-            )
+            except Exception:
+                logger.exception('Failed creating DetectedError for submission_id=%s payload=%s', submission.id, err)
 
         return detected
