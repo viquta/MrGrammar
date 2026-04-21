@@ -45,19 +45,8 @@ class LanguageToolClient:
             logger.error('LanguageTool request failed: %s', e)
             return []
 
-<<<<<<< Updated upstream
-        try:
-            payload = response.json()
-        except ValueError as e:
-            logger.error('LanguageTool returned invalid JSON: %s', e)
-            return []
-
-        matches = payload.get('matches', [])
-        errors = []
-=======
-        matches = response.json().get('matches', [])
+        matches = self._extract_matches(response)
         return self._parse_matches(matches, text, base_offset=0)
->>>>>>> Stashed changes
 
     def detect_by_sentences(
         self,
@@ -81,12 +70,28 @@ class LanguageToolClient:
                 )
                 continue
 
-            matches = response.json().get('matches', [])
+            matches = self._extract_matches(
+                response,
+                context=f' for sentence at offset {sentence.start_offset}',
+            )
             errors = self._parse_matches(
                 matches, sentence.text, base_offset=sentence.start_offset,
             )
             all_errors.extend(errors)
         return all_errors
+
+    def _extract_matches(self, response, context: str = '') -> list[dict]:
+        try:
+            payload = response.json()
+        except ValueError as e:
+            logger.error('LanguageTool returned invalid JSON%s: %s', context, e)
+            return []
+
+        matches = payload.get('matches', [])
+        if not isinstance(matches, list):
+            logger.warning('LanguageTool returned malformed matches payload%s: %s', context, payload)
+            return []
+        return matches
 
     def _parse_matches(
         self,
@@ -120,28 +125,17 @@ class LanguageToolClient:
 
             lt_category = str(match.get('rule', {}).get('category', {}).get('id', ''))
 
-            local_start = match['offset']
-            local_end = match['offset'] + match['length']
+            local_start = start_offset
+            local_end = end_offset
 
             errors.append({
-<<<<<<< Updated upstream
-                'start_offset': start_offset,
-                'end_offset': end_offset,
-                'original_text': text[start_offset:end_offset],
-=======
                 'start_offset': base_offset + local_start,
                 'end_offset': base_offset + local_end,
                 'original_text': text[local_start:local_end],
->>>>>>> Stashed changes
                 'correct_solution': best_replacement,
                 'hint_text': str(match.get('message', '')),
                 'error_category': self._map_category(lt_category, match),
-<<<<<<< Updated upstream
                 'languagetool_rule_id': str(match.get('rule', {}).get('id', '')),
-=======
-                'languagetool_rule_id': match.get('rule', {}).get('id', ''),
-                'lt_category_id': lt_category,
->>>>>>> Stashed changes
             })
         return errors
 
@@ -294,26 +288,23 @@ class ErrorDetectionService:
 
     def analyze(self, submission: TextSubmission) -> list[DetectedError]:
         text = submission.content
+        submission_id = getattr(submission, 'id', None)
 
         # ── Create spaCy doc for POS/NER analysis ──
         doc = self.spacy_processor.make_doc(text)
+        sentences = self.spacy_processor.split_sentences(text) if self.use_sentence_split else []
 
         # ── Detection ──
         all_raw_errors = []
         for detector in self.detectors:
-<<<<<<< Updated upstream
             try:
-                raw_errors = detector.detect(submission.content, submission.language)
+                if self.use_sentence_split and hasattr(detector, 'detect_by_sentences'):
+                    raw_errors = detector.detect_by_sentences(sentences, submission.language)
+                else:
+                    raw_errors = detector.detect(text, submission.language)
             except Exception:
-                logger.exception('Detector failed for submission_id=%s', submission.id)
+                logger.exception('Detector failed for submission_id=%s', submission_id)
                 continue
-=======
-            if self.use_sentence_split and hasattr(detector, 'detect_by_sentences'):
-                sentences = self.spacy_processor.split_sentences(text)
-                raw_errors = detector.detect_by_sentences(sentences, submission.language)
-            else:
-                raw_errors = detector.detect(text, submission.language)
->>>>>>> Stashed changes
             all_raw_errors.extend(raw_errors)
 
         # Deduplicate by offset range
@@ -351,58 +342,39 @@ class ErrorDetectionService:
 
         # ── Post-processing: enrich with spaCy ──
         detected = []
+        valid_categories = {choice for choice, _label in DetectedError.Category.choices}
         for err in unique_errors:
-<<<<<<< Updated upstream
-            category = err.get('error_category', DetectedError.Category.OTHER)
-            valid_categories = {choice for choice, _label in DetectedError.Category.choices}
-            if category not in valid_categories:
-                category = DetectedError.Category.OTHER
-
             try:
+                enhanced_category = self.spacy_processor.categorize_error(
+                    original_text=err['original_text'],
+                    lt_category=err['error_category'],
+                    lt_rule_id=err.get('languagetool_rule_id', ''),
+                    doc=doc,
+                    start_offset=err['start_offset'],
+                )
+                if enhanced_category not in valid_categories:
+                    enhanced_category = DetectedError.Category.OTHER
+
+                error_context = self.spacy_processor.extract_error_context(
+                    doc, err['start_offset'], err['end_offset'],
+                )
+                spacy_pos = self.spacy_processor.get_pos_tag(doc, err['start_offset'])
+
                 detected.append(
                     DetectedError.objects.create(
                         submission=submission,
-                        error_category=category,
+                        error_category=enhanced_category,
                         start_offset=err['start_offset'],
                         end_offset=err['end_offset'],
                         original_text=err['original_text'],
                         hint_text=err['hint_text'],
                         correct_solution=err['correct_solution'],
                         languagetool_rule_id=err.get('languagetool_rule_id', ''),
+                        spacy_pos_tag=spacy_pos,
+                        error_context=error_context,
                     )
-=======
-            # Override category using POS/morphology
-            enhanced_category = self.spacy_processor.categorize_error(
-                original_text=err['original_text'],
-                lt_category=err['error_category'],
-                lt_rule_id=err.get('languagetool_rule_id', ''),
-                doc=doc,
-                start_offset=err['start_offset'],
-            )
-
-            # Extract linguistic context
-            error_context = self.spacy_processor.extract_error_context(
-                doc, err['start_offset'], err['end_offset'],
-            )
-            spacy_pos = self.spacy_processor.get_pos_tag(doc, err['start_offset'])
-
-            detected.append(
-                DetectedError.objects.create(
-                    submission=submission,
-                    error_category=enhanced_category,
-                    start_offset=err['start_offset'],
-                    end_offset=err['end_offset'],
-                    original_text=err['original_text'],
-                    hint_text=err['hint_text'],
-                    correct_solution=err['correct_solution'],
-                    languagetool_rule_id=err.get('languagetool_rule_id', ''),
-                    spacy_pos_tag=spacy_pos,
-                    error_context=error_context,
->>>>>>> Stashed changes
                 )
             except Exception:
-                logger.exception('Failed creating DetectedError for submission_id=%s payload=%s', submission.id, err)
-
-        return detected
+                logger.exception('Failed creating DetectedError for submission_id=%s payload=%s', submission_id, err)
 
         return detected

@@ -23,7 +23,7 @@ This document describes the deployment architecture, Docker Compose configuratio
 
 ## 1. Overview
 
-MrGrammar runs as a set of four Docker containers orchestrated by Docker Compose:
+MrGrammar runs as a set of four Docker containers orchestrated by Docker Compose, plus one external Ollama host on the local network for final-answer explanations:
 
 | Service | Image | Purpose |
 |---------|-------|---------|
@@ -33,6 +33,8 @@ MrGrammar runs as a set of four Docker containers orchestrated by Docker Compose
 | **languagetool** | `erikvl87/languagetool` | Self-hosted grammar checker (German) |
 
 All services communicate over a shared Docker Compose network. The frontend and backend expose ports to the host for browser access and API calls.
+
+The backend also makes outbound HTTP requests to an Ollama instance on the local network. In the current development setup this is expected at `10.0.0.4:11434` and is used only for phase-3 explanation generation.
 
 ---
 
@@ -115,6 +117,11 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | `LANGUAGETOOL_URL` | `http://languagetool:8010/v2` | LanguageTool API base URL |
 | `SPACY_MODEL` | `de_core_news_md` | spaCy model name loaded by `SpacyTextProcessor` |
 | `SPACY_SENTENCE_SPLIT` | `True` | Whether to use spaCy sentence splitting for per-sentence LanguageTool analysis |
+| `ENABLE_LLM_EXPLANATIONS` | `True` | Enable final-answer explanation generation |
+| `OLLAMA_BASE_URL` | `http://10.0.0.4:11434` | Ollama API base URL for explanation generation |
+| `OLLAMA_MODEL` | `gemma4:26b` | Ollama model name used for explanations |
+| `OLLAMA_TIMEOUT_SECONDS` | `15` | Timeout for explanation requests |
+| `OLLAMA_EXPLANATION_TEMPERATURE` | `0.2` | Sampling temperature for explanation generation |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Frontend Service
@@ -156,6 +163,7 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 ```
 frontend ──depends_on──→ backend ──depends_on──→ db
                                   ──depends_on──→ languagetool
+                                  ──HTTP────────→ ollama host (10.0.0.4:11434)
 ```
 
 Docker Compose starts services in dependency order:
@@ -232,5 +240,8 @@ All four services share a single Docker Compose default network. Inter-service c
 | Frontend (browser) | Backend | HTTP/JSON | `localhost:8000/api/` |
 | Backend | Database | PostgreSQL wire protocol | `db:5432` |
 | Backend (nlp) | LanguageTool | HTTP | `languagetool:8010/v2/check` |
+| Backend (feedback) | Ollama | HTTP | `10.0.0.4:11434/api/generate` |
 
 > **CORS**: The backend includes `django-cors-headers` middleware configured to accept requests from `http://localhost:5173` (the frontend's origin). This is required because the browser makes cross-origin API calls from the SvelteKit dev server to the Django API server.
+
+> **Ollama reachability**: When the backend runs in Docker, `OLLAMA_BASE_URL` must point to an address reachable from inside the backend container. In the current setup this is the LAN IP `10.0.0.4`. If the Ollama host or port changes, update the environment variable rather than hardcoding the address.

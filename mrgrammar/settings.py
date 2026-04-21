@@ -119,10 +119,15 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 
 # ── MrGrammar Configuration (NFR-8.4: configurable without code changes) ──
 MRGRAMMAR = {
-    'MAX_CORRECTION_ATTEMPTS': int(os.environ.get('MAX_CORRECTION_ATTEMPTS', '3')),
+    'MAX_CORRECTION_ATTEMPTS': int(os.environ.get('MAX_CORRECTION_ATTEMPTS', '2')),
     'HINT_THRESHOLD': int(os.environ.get('HINT_THRESHOLD', '1')),
     'SUPPORTED_LANGUAGES': os.environ.get('SUPPORTED_LANGUAGES', 'de').split(','),
     'LANGUAGETOOL_URL': os.environ.get('LANGUAGETOOL_URL', 'http://localhost:8010/v2'),
     'SPACY_MODEL': os.environ.get('SPACY_MODEL', 'de_core_news_md'),
     'SPACY_SENTENCE_SPLIT': os.environ.get('SPACY_SENTENCE_SPLIT', 'True').lower() in ('true', '1', 'yes'),
+    'ENABLE_LLM_EXPLANATIONS': os.environ.get('ENABLE_LLM_EXPLANATIONS', 'True').lower() in ('true', '1', 'yes'),
+    'OLLAMA_BASE_URL': os.environ.get('OLLAMA_BASE_URL', 'http://10.0.0.4:11434'),
+    'OLLAMA_MODEL': os.environ.get('OLLAMA_MODEL', 'gemma4:26b'),
+    'OLLAMA_TIMEOUT_SECONDS': int(os.environ.get('OLLAMA_TIMEOUT_SECONDS', '15')),
+    'OLLAMA_EXPLANATION_TEMPERATURE': float(os.environ.get('OLLAMA_EXPLANATION_TEMPERATURE', '0.2')),
 }

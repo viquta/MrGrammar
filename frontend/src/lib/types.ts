@@ -39,15 +39,24 @@ export interface DetectedError {
 	original_text: string;
 	is_resolved: boolean;
 	attempt_count: number;
+	display_group: string;
+	display_label: string;
+	can_request_solution: boolean;
+	next_try_number: number;
 	created_at: string;
 }
 
 export interface CorrectionAttemptResult {
 	attempt_number: number;
+	display_attempt_number: number;
+	phase: 'phase_2' | 'phase_3';
+	outcome: 'retry' | 'hint' | 'correct' | 'solution_revealed' | 'manual_reveal' | 'locked';
 	is_correct: boolean;
 	is_resolved: boolean;
+	can_request_solution: boolean;
 	hint?: string;
 	solution?: string;
+	explanation?: string;
 }
 
 export interface TokenResponse {

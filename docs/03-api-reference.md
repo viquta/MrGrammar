@@ -472,6 +472,10 @@ List all detected errors for a submission.
     "original_text": "der",
     "is_resolved": false,
     "attempt_count": 0,
+    "display_group": "noun_phrase",
+    "display_label": "Noun Phrase",
+    "can_request_solution": false,
+    "next_try_number": 2,
     "created_at": "2026-04-19T10:05:00Z"
   }
 ]
@@ -537,39 +541,43 @@ The response varies based on the attempt outcome:
 **Correct answer**:
 ```json
 {
-  "attempt_number": 2,
+  "attempt_number": 1,
+  "display_attempt_number": 2,
+  "phase": "phase_2",
+  "outcome": "correct",
   "is_correct": true,
-  "is_resolved": true
+  "is_resolved": true,
+  "can_request_solution": false
 }
 ```
 
-**Incorrect, below hint threshold**:
+**Incorrect, hint shown and phase 3 unlocked**:
 ```json
 {
   "attempt_number": 1,
-  "is_correct": false,
-  "is_resolved": false
-}
-```
-
-**Incorrect, hint threshold reached** (attempt ≥ `HINT_THRESHOLD`):
-```json
-{
-  "attempt_number": 2,
+  "display_attempt_number": 2,
+  "phase": "phase_2",
+  "outcome": "hint",
   "is_correct": false,
   "is_resolved": false,
+  "can_request_solution": true,
   "hint": "The noun 'Schule' is feminine in German."
 }
 ```
 
-**Incorrect, max attempts reached** (attempt ≥ `MAX_CORRECTION_ATTEMPTS`):
+**Incorrect on the final correction attempt**:
 ```json
 {
-  "attempt_number": 3,
+  "attempt_number": 2,
+  "display_attempt_number": 3,
+  "phase": "phase_3",
+  "outcome": "solution_revealed",
   "is_correct": false,
   "is_resolved": true,
+  "can_request_solution": false,
   "hint": "The noun 'Schule' is feminine in German.",
-  "solution": "die"
+  "solution": "die",
+  "explanation": "Your answer does not match the noun gender. Use the feminine article for 'Schule'."
 }
 ```
 
@@ -586,26 +594,46 @@ The response varies based on the attempt outcome:
 |-----------|---------|--------|
 | `SIMILARITY_THRESHOLD` | `0.85` | Levenshtein ratio ≥ this value → attempt accepted as correct |
 | `HINT_THRESHOLD` | `1` | Attempt number at which hint is revealed on failure |
-| `MAX_CORRECTION_ATTEMPTS` | `3` | Attempt number at which solution is revealed and error auto-resolved |
+| `MAX_CORRECTION_ATTEMPTS` | `2` | Attempt number at which solution is revealed and error auto-resolved |
 
 ---
 
 ### POST `/api/feedback/errors/{id}/solution/`
 
-Immediately reveal the hint and solution for an error, marking it as resolved. This bypasses the correction workflow.
+Reveal the hint, answer, and final explanation for an error once manual reveal has been unlocked. The current backend unlocks this only after the first failed correction attempt.
 
 **Permissions**: `IsAuthenticated`
 
-**Request Body**: None
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `attempted_text` | string | no | The learner's current draft, passed through to the explanation generator |
 
 **Response** `200 OK`:
 
 ```json
 {
+  "attempt_number": 1,
+  "display_attempt_number": 2,
+  "phase": "phase_3",
+  "outcome": "manual_reveal",
+  "is_correct": false,
+  "is_resolved": true,
+  "can_request_solution": false,
   "hint": "The noun 'Schule' is feminine in German.",
-  "solution": "die"
+  "solution": "die",
+  "explanation": "Your answer does not match the noun gender. Use the feminine article for 'Schule'."
 }
 ```
+
+**Error Responses**:
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Error is already resolved |
+| `400` | Solution reveal is not available yet |
+| `404` | Error does not exist or does not belong to the current student |
 
 ---
 

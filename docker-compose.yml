@@ -33,6 +33,8 @@ services:
       POSTGRES_USER: mrgrammar
       POSTGRES_PASSWORD: mrgrammar_dev
       LANGUAGETOOL_URL: http://languagetool:8010/v2
+      OLLAMA_BASE_URL: http://10.0.0.4:11434
+      OLLAMA_MODEL: gemma4:26b
       DJANGO_DEBUG: "True"
     depends_on:
       - db

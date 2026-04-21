@@ -2,11 +2,11 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from classrooms.models import ClassroomMembership
 from .models import DetectedError
 from .serializers import (
     DetectedErrorSerializer,
     DetectedErrorDetailSerializer,
+    RequestSolutionSerializer,
     SubmitAttemptSerializer,
 )
 from .services import CorrectionWorkflowService
@@ -19,19 +19,28 @@ class SubmissionErrorsView(generics.ListAPIView):
     def get_queryset(self):
         return DetectedError.objects.filter(
             submission_id=self.kwargs['submission_id'],
+            submission__student=self.request.user,
         ).prefetch_related('attempts')
 
 
 class ErrorDetailView(generics.RetrieveAPIView):
     serializer_class = DetectedErrorDetailSerializer
-    queryset = DetectedError.objects.all()
+
+    def get_queryset(self):
+        return DetectedError.objects.filter(submission__student=self.request.user)
+
+
+def _get_owned_error(pk, user):
+    try:
+        return DetectedError.objects.get(pk=pk, submission__student=user)
+    except DetectedError.DoesNotExist:
+        return None
 
 
 class SubmitAttemptView(APIView):
     def post(self, request, pk):
-        try:
-            error = DetectedError.objects.get(pk=pk)
-        except DetectedError.DoesNotExist:
+        error = _get_owned_error(pk, request.user)
+        if error is None:
             return Response(
                 {'detail': 'Error not found.'}, status=status.HTTP_404_NOT_FOUND,
             )
@@ -57,15 +66,30 @@ class SubmitAttemptView(APIView):
 
 class RequestSolutionView(APIView):
     def post(self, request, pk):
-        try:
-            error = DetectedError.objects.get(pk=pk)
-        except DetectedError.DoesNotExist:
+        error = _get_owned_error(pk, request.user)
+        if error is None:
             return Response(
                 {'detail': 'Error not found.'}, status=status.HTTP_404_NOT_FOUND,
             )
 
         service = CorrectionWorkflowService()
-        result = service.request_solution(error)
+        if error.is_resolved:
+            return Response(
+                {'detail': 'This error has already been resolved.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not service.can_request_solution(error):
+            return Response(
+                {'detail': 'Solution reveal is not available yet.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = RequestSolutionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = service.request_solution(
+            error,
+            attempted_text=serializer.validated_data.get('attempted_text', ''),
+        )
 
         error.is_resolved = True
         error.save(update_fields=['is_resolved'])
