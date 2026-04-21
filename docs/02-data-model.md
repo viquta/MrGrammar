@@ -2,6 +2,8 @@
 
 This document describes the persistent data model of MrGrammar. The system uses seven Django models across five applications, backed by a PostgreSQL 16 database. The custom user model is configured via `AUTH_USER_MODEL = 'accounts.User'`.
 
+The learner workflow also exposes several **derived presentation fields** through DRF serializers, such as grammatical-role highlight groups and phase labels. Those values are not stored as database columns unless explicitly noted below.
+
 > **UML Class Diagram**: Open [`diagrams/class-diagram.drawio`](diagrams/class-diagram.drawio) in the Draw.io VS Code extension or at [diagrams.net](https://app.diagrams.net) to view the full class diagram with associations and cardinalities.
 >
 > ![Class Diagram](diagrams/exported/class-diagram.png)
@@ -167,7 +169,7 @@ SUBMITTED  →  ANALYZING  →  IN_REVIEW  →  COMPLETED
 
 **App**: `feedback` · **Table**: `feedback_detectederror`
 
-Represents a single error detected in a student's text by the NLP pipeline. Character offsets allow precise in-text highlighting. The `hint_text` and `correct_solution` fields support the progressive disclosure workflow — they are not exposed to the student until appropriate in the correction process.
+Represents a single error detected in a student's text by the NLP pipeline. Character offsets allow precise in-text highlighting. The `hint_text` and `correct_solution` fields support the phase-led correction workflow and are not exposed to the learner until the correction process reaches the appropriate phase.
 
 ### Fields
 
@@ -188,6 +190,23 @@ Represents a single error detected in a student's text by the NLP pipeline. Char
 | `is_resolved` | Boolean | — | `False` | Whether the student has successfully corrected this error |
 | `created_at` | DateTime | auto_now_add | — | Detection timestamp |
 
+### Derived API Presentation Fields (Not Persisted)
+
+The feedback serializers compute several fields from the stored `DetectedError`, its related `CorrectionAttempt` rows, and the current workflow configuration. These fields are API-facing only and are **not** stored in `feedback_detectederror`.
+
+| Field | Source | Description |
+|-------|--------|-------------|
+| `display_group` | Derived from `error_category`, `spacy_pos_tag`, `languagetool_rule_id` | Grammatical-role grouping used for colour-coded highlights (`verb_phrase`, `noun_phrase`, `adjective`, `spelling_word_choice`, `syntax`) |
+| `display_label` | Derived from `display_group` | Human-readable label shown in the frontend |
+| `can_request_solution` | Derived from `attempts.count()` and `HINT_THRESHOLD` | Whether the gated manual reveal endpoint is available for this error |
+| `next_try_number` | Derived from `attempts.count()` | Learner-facing upcoming try label (`2` for second try, `3` for third try) |
+
+### Workflow Notes
+
+- `hint_text` is reused both for the phase-2 hint response and as fallback explanation context if the Ollama host is unavailable.
+- `correct_solution` is persisted so the backend can validate typed corrections, reveal the final answer, and seed the final explanation prompt.
+- Final explanation text itself is **not** persisted on `DetectedError`; it is generated on demand in the feedback layer.
+
 ### Relationships
 
 | Related Model | FK Field | related_name | Cardinality |
@@ -205,7 +224,7 @@ Represents a single error detected in a student's text by the NLP pipeline. Char
 
 **App**: `feedback` · **Table**: `feedback_correctionattempt`
 
-Records each student attempt to correct a detected error. Tracks the progression through the guided correction workflow including whether hints and solutions were shown.
+Records each typed learner attempt to correct a detected error. Tracks the progression through the guided correction workflow including whether hints and solutions were shown on that stored attempt.
 
 ### Fields
 
@@ -214,7 +233,7 @@ Records each student attempt to correct a detected error. Tracks the progression
 | `id` | Integer | PK, auto-increment | — | Primary key |
 | `error` | FK → `DetectedError` | CASCADE | — | Target error being corrected |
 | `student` | FK → `User` | CASCADE | — | Student making the attempt |
-| `attempt_number` | SmallInteger | ≥ 0 | — | Sequential attempt counter (1-based) |
+| `attempt_number` | SmallInteger | ≥ 0 | — | Sequential internal correction-attempt counter (1-based) |
 | `attempted_text` | Text | — | — | Student's proposed correction |
 | `is_correct` | Boolean | — | `False` | Whether the attempt was accepted |
 | `hint_shown` | Boolean | — | `False` | Whether a hint was revealed on this attempt |
@@ -224,6 +243,17 @@ Records each student attempt to correct a detected error. Tracks the progression
 ### Constraints
 
 - **unique_together**: `[error, attempt_number]` — Ensures sequential, non-duplicate attempt numbering per error.
+
+### Workflow Interpretation
+
+`attempt_number` is an internal backend counter rather than the exact learner-facing label:
+
+| `attempt_number` | Learner-Facing Meaning | Typical Response |
+|------------------|------------------------|------------------|
+| `1` | Second try / phase 2 | Correct answer or hint unlock |
+| `2` | Third try / phase 3 | Correct answer or final answer + explanation |
+
+The gated manual reveal path does **not** create a `CorrectionAttempt` row. It resolves the `DetectedError` directly and returns the hint, answer, and explanation response payload through the feedback API.
 
 ### Relationships
 
@@ -253,7 +283,7 @@ Pre-computed aggregation of error statistics per student, per submission, per er
 | `submission` | FK → `TextSubmission` | CASCADE | — | Target submission |
 | `error_category` | String(20) | — | — | Error category being summarised |
 | `total_errors` | Integer | ≥ 0 | `0` | Total errors in this category |
-| `first_attempt_successes` | Integer | ≥ 0 | `0` | Errors corrected on the first attempt |
+| `first_attempt_successes` | Integer | ≥ 0 | `0` | Errors corrected on the first stored correction attempt (learner-facing second try) |
 | `avg_hints_used` | Float | — | `0.0` | Average number of hints consumed per error |
 | `computed_at` | DateTime | auto_now | — | Last computation timestamp |
 
@@ -271,6 +301,11 @@ Pre-computed aggregation of error statistics per student, per submission, per er
 ### Ordering
 
 `['-submission__submitted_at', 'error_category']`
+
+### Analytics Scope Notes
+
+- Summaries are currently grouped by persistent `error_category`, not by the derived `display_group` used in the frontend.
+- Manual reveal versus final failed third try is not persisted as a dedicated analytics column; both can be reconstructed from workflow responses or extended later if teacher reporting requires it.
 
 ---
 
@@ -350,6 +385,6 @@ User (accounts.User)
 
 - **User ↔ Classroom (through ClassroomMembership)**: Many-to-many with role metadata. A user can belong to multiple classrooms, each with a distinct role (student or teacher). The `unique_together` constraint on `[user, classroom]` prevents duplicate memberships.
 
-- **TextSubmission → DetectedError → CorrectionAttempt**: This is the core pedagogical chain. Each submission generates zero or more detected errors (via NLP analysis), and each error collects zero or more correction attempts (via student interaction). All use `CASCADE` deletion — removing a submission removes all associated errors and attempts.
+- **TextSubmission → DetectedError → CorrectionAttempt**: This is the core pedagogical chain. Each submission generates zero or more detected errors (via NLP analysis), and each error collects zero or more stored correction attempts (via typed learner interaction). A gated manual reveal can resolve an error without creating another `CorrectionAttempt` row. All use `CASCADE` deletion — removing a submission removes all associated errors and attempts.
 
-- **LearnerErrorSummary**: A denormalised aggregation model that summarises error statistics per student × submission × category. It exists for query performance in the analytics layer and is recomputed rather than manually maintained.
+- **LearnerErrorSummary**: A denormalised aggregation model that summarises error statistics per student × submission × category. It exists for query performance in the analytics layer and is recomputed rather than manually maintained. It currently reflects persistent error categories and attempt rows, not the derived grammatical-role display groups used in the frontend.

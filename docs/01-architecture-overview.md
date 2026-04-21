@@ -2,17 +2,18 @@
 
 ## 1. System Purpose
 
-**MrGrammar** is a pedagogically driven grammar-feedback platform for German-language learners. It addresses a core problem in language education: teachers cannot deliver ideal corrective feedback — highlight → hint → solution — to large cohorts at scale. Unlike consumer tools such as Grammarly, MrGrammar enforces an **active-learning workflow** that requires students to attempt corrections before revealing solutions, and provides teachers with longitudinal error-pattern analytics.
+**MrGrammar** is a pedagogically driven grammar-feedback platform for German-language learners. It addresses a core problem in language education: teachers cannot deliver ideal corrective feedback — highlight → hint → answer with explanation — to large cohorts at scale. Unlike consumer tools such as Grammarly, MrGrammar enforces an **active-learning workflow** with three learner-facing phases: phase 1 analysis and grammatical-role highlighting, phase 2 second-try correction with hint unlock, and phase 3 third-try correction or gated answer reveal. The platform also provides teachers with longitudinal error-pattern analytics.
 
 ### Design Goals
 
 | Goal | Description |
 |------|-------------|
-| **Active Learning** | Students must engage with each error through guided correction before seeing the solution. |
+| **Active Learning** | Students must move through analyze → second try → third try / gated reveal instead of seeing the answer immediately. |
 | **Scalable Feedback** | Automated low-level error detection (grammar, spelling, articles, prepositions, verb tense, punctuation) reduces teacher workload. |
 | **Longitudinal Tracking** | Error-pattern aggregation enables teachers to identify persistent weaknesses at the student and classroom level. |
 | **Role-Based Access** | Three distinct roles — Student, Teacher, Admin — with fine-grained permission enforcement at the API layer. |
 | **Extensible NLP Pipeline** | Pluggable error-detection backends allow future integration of additional NLP services beyond LanguageTool. |
+| **Configurable Explanation Layer** | Final explanations are generated on demand through a local Ollama-hosted LLM so the reveal step can stay pedagogical rather than static. |
 
 ---
 
@@ -32,6 +33,7 @@
 | **NLP** | LanguageTool | self-hosted | Grammar and spell checking (German) |
 | | spaCy | 3.8 | Text cleaning, sentence splitting, POS tagging, OOV spell detection |
 | | `de_core_news_md` | 3.8 | German spaCy model (~40 MB) with word vectors, POS, NER |
+| | Ollama + Gemma 4 26B | local network | On-demand final explanation generation for phase 3 reveals |
 | | RapidFuzz / Levenshtein | — | Fuzzy string matching for correction validation and spell suggestions |
 | **Database** | PostgreSQL | 16 | Relational data persistence |
 | **Infrastructure** | Docker Compose | — | Multi-container orchestration |
@@ -63,28 +65,31 @@ The system follows a four-layer architecture with clear separation of concerns.
                          ▼
 ┌─────────────────────────────────────────────────────────┐
 │                    Service Layer                         │
-│  CorrectionWorkflowService  · ErrorDetectionService     │
-│  LanguageToolClient · SpacyGrammarDetector               │
-│  SpacyTextProcessor · AnalyticsService                   │
-│    (feedback/services.py, nlp/services.py,               │
-│     nlp/spacy_processor.py, analytics/services.py)       │
+│  CorrectionWorkflowService · ExplanationGenerationService│
+│  ErrorDetectionService · LanguageToolClient              │
+│  SpacyGrammarDetector · SpacyTextProcessor               │
+│  AnalyticsService                                        │
+│  (feedback/services.py, feedback/explanations.py,        │
+│   nlp/services.py, nlp/spacy_processor.py,               │
+│   analytics/services.py)                                 │
 └───────────┬─────────────────────────────┬───────────────┘
             │  Django ORM                 │  HTTP
             ▼                             ▼
 ┌───────────────────────┐   ┌─────────────────────────────┐
 │     Data Layer        │   │   External Services         │
 │  PostgreSQL 16        │   │   LanguageTool REST API     │
-│  (port 5432)          │   │   (port 8010, /v2/check)    │
+│  (port 5432)          │   │   Ollama REST API           │
+│                       │   │   (configured host)         │
 └───────────────────────┘   └─────────────────────────────┘
 ```
 
 ### Layer Responsibilities
 
-**Presentation Layer** — The SvelteKit single-page application handles routing, form rendering, authentication state management (JWT tokens in `localStorage`), and the interactive correction UI (inline error highlighting, attempt submission, hint/solution reveal).
+**Presentation Layer** — The SvelteKit single-page application handles routing, form rendering, authentication state management (JWT tokens in `localStorage`), and the interactive correction UI. The submission detail page is phase-led: phase 1 shows grammatical-role highlights, phase 2 collects the learner's second try, and phase 3 supports the final retry or gated answer reveal.
 
 **API Gateway Layer** — DRF views handle HTTP request/response serialisation, input validation, and permission enforcement. Each Django app (`accounts`, `classrooms`, `submissions`, `feedback`, `nlp`, `analytics`) exposes its own URL namespace under `/api/`. Role-based permissions are enforced via custom permission classes.
 
-**Service Layer** — Business logic is encapsulated in service classes that are independent of the HTTP layer. This includes the correction workflow (Levenshtein similarity checking, progressive hint disclosure), NLP error detection (a dual-backend pipeline combining LanguageTool for grammar rules and spaCy for OOV spelling detection, POS-based error categorisation, and linguistic context extraction), and analytics aggregation.
+**Service Layer** — Business logic is encapsulated in service classes that are independent of the HTTP layer. This includes the correction workflow (Levenshtein similarity checking, hint gating, answer reveal policy, and learner-facing phase metadata), NLP error detection (a dual-backend pipeline combining LanguageTool for grammar rules and spaCy for OOV spelling detection, POS-based error categorisation, and linguistic context extraction), on-demand explanation generation through Ollama, and analytics aggregation.
 
 **Data Layer** — PostgreSQL stores all persistent state via Django's ORM. The schema comprises seven models across five apps (see [Data Model](02-data-model.md)).
 
@@ -178,23 +183,25 @@ The `LanguageToolClient` maps LanguageTool's internal rule categories to the app
 | `PUNCTUATION`, `TYPOGRAPHY` | `PUNCTUATION` |
 | (other) | `OTHER` |
 
-### Progressive Disclosure — Correction Workflow
+### Phase-Led Guided Correction Workflow
 
-The `CorrectionWorkflowService` in `feedback/services.py` implements a guided correction loop controlled by three configuration parameters:
+The `CorrectionWorkflowService` in `feedback/services.py` implements a guided correction loop controlled by three configuration parameters. The backend stores correction attempts as a 1-based internal counter, while the frontend maps those attempts to the learner-facing second-try and third-try phases.
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
 | `SIMILARITY_THRESHOLD` | 0.85 | Levenshtein ratio above which an attempt is accepted as correct |
-| `HINT_THRESHOLD` | 1 | Attempt number at which a hint is revealed |
-| `MAX_CORRECTION_ATTEMPTS` | 3 | Attempt number at which both hint and solution are revealed |
+| `HINT_THRESHOLD` | 1 | Internal attempt number at which a hint is revealed and manual reveal becomes available |
+| `MAX_CORRECTION_ATTEMPTS` | 2 | Internal attempt number at which the final answer and explanation are revealed |
 
 The workflow proceeds as follows:
 
-1. **Attempt 1** — Student submits correction. If Levenshtein similarity ≥ 0.85, the error is resolved. Otherwise, retry.
-2. **Attempt ≥ HINT_THRESHOLD** — On failure, the system additionally returns the hint text.
-3. **Attempt ≥ MAX_CORRECTION_ATTEMPTS** — On failure, the system returns both hint and solution, and marks the error as resolved.
+1. **Phase 1** — The NLP layer analyses the submission and the frontend renders grammatical-role highlights derived from stored error metadata.
+2. **Phase 2 / internal attempt 1** — The learner submits the second try. If Levenshtein similarity ≥ 0.85, the error is resolved. Otherwise, the service returns the hint, unlocks phase 3, and allows gated manual reveal.
+3. **Phase 3 / internal attempt 2** — The learner submits the third try. On success, the error is resolved. On failure, the service returns the hint, answer, and a short explanation, then marks the error as resolved.
 
-At any point, the student may explicitly request the solution via a separate endpoint, which immediately reveals hint + solution and resolves the error.
+After phase 2 has been failed once, the learner may use a separate gated reveal endpoint instead of typing the third try. That endpoint returns the hint, answer, and explanation and resolves the error without creating a new `CorrectionAttempt` row.
+
+The final explanation text is generated on demand by `ExplanationGenerationService` in `feedback/explanations.py`, which calls the local-network Ollama host configured in `settings.MRGRAMMAR`.
 
 ### Role-Based Queryset Filtering
 
@@ -215,7 +222,7 @@ The backend is organised into six Django apps, each with a focused domain respon
 | `accounts` | Authentication & user management | Custom `User` model, JWT endpoints, role-based permissions |
 | `classrooms` | Classroom & membership management | `Classroom`, `ClassroomMembership` models, member CRUD |
 | `submissions` | Student text submissions | `TextSubmission` model with status workflow |
-| `feedback` | Error records & correction workflow | `DetectedError`, `CorrectionAttempt` models, `CorrectionWorkflowService` |
+| `feedback` | Error records, correction workflow, explanation integration | `DetectedError`, `CorrectionAttempt` models, `CorrectionWorkflowService`, `ExplanationGenerationService` |
 | `nlp` | NLP error detection pipeline | `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector`, `SpacyTextProcessor` |
 | `analytics` | Progress tracking & statistics | `LearnerErrorSummary` model, `AnalyticsService` |
 
@@ -245,6 +252,18 @@ MrGrammar integrates with a **self-hosted LanguageTool instance** running as a D
 | Request timeout | 30 seconds |
 | JVM memory | 256 MB min, 512 MB max |
 
+### Ollama
+
+MrGrammar also integrates with an **Ollama host on the local network** for phase-3 explanation generation. The feedback layer sends a non-streaming generation request only when the learner reaches the final reveal path or uses the gated manual reveal action.
+
+| Property | Value |
+|----------|-------|
+| Endpoint | `POST /api/generate` |
+| Host | Configured via `OLLAMA_BASE_URL` |
+| Model | `gemma4:26b` by default |
+| Timeout | 15 seconds by default |
+| Fallback | If Ollama is unavailable, the backend returns a deterministic explanation assembled from `hint_text` and `correct_solution` |
+
 ### PostgreSQL
 
 The relational database stores all application state. Connection parameters are configurable via environment variables with sensible development defaults.
@@ -253,6 +272,6 @@ The relational database stores all application state. Connection parameters are 
 |-----------|---------|
 | Database name | `mrgrammar` |
 | User | `mrgrammar` |
-| Password | `mrgrammar_dev` |
+| Password | Configured via `POSTGRES_PASSWORD` |
 | Host | `localhost` (or `db` in Docker) |
 | Port | `5432` |

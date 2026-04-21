@@ -1,6 +1,6 @@
 # Sequence Diagrams
 
-This document describes the three core workflows of MrGrammar using UML sequence diagrams. Each subsection provides a narrative explanation alongside the corresponding diagram.
+This document describes the core workflows of MrGrammar using UML sequence diagrams and workflow diagrams. Each subsection provides a narrative explanation alongside the corresponding source diagram files.
 
 > **Diagram files**: Open the `.drawio` files in the Draw.io VS Code extension or at [diagrams.net](https://app.diagrams.net).
 
@@ -146,9 +146,13 @@ This document describes the three core workflows of MrGrammar using UML sequence
 
 ## 3. Guided Correction Workflow
 
-**Diagram**: [`diagrams/sequence-correction.drawio`](diagrams/sequence-correction.drawio)
+**Workflow diagrams**:
 
-![Correction Sequence](diagrams/exported/sequence-correction.png)
+- [`diagrams/my_idea_workflow_phase_1.drawio`](diagrams/my_idea_workflow_phase_1.drawio) — Phase 1 analysis and grouped highlights
+- [`diagrams/my_idea_workflow_phase_2.drawio`](diagrams/my_idea_workflow_phase_2.drawio) — Phase 2 second try and hint path
+- [`diagrams/my_idea_workflow_phase_3.drawio`](diagrams/my_idea_workflow_phase_3.drawio) — Phase 3 third try and answer reveal
+
+> **Note**: [`diagrams/sequence-correction.drawio`](diagrams/sequence-correction.drawio) is a legacy correction sequence artifact and no longer reflects the current phase-led workflow as closely as the three workflow diagrams above.
 
 ### Participants
 

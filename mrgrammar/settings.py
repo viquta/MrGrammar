@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get(
     'DJANGO_SECRET_KEY',
-    'django-insecure-ujm)ud7s89+=7sw6r60ui3oo*oxx2%at0+1*c1lopsyn=v2-lh',
+    'unsafe-dev-secret-key-change-me',
 )
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
@@ -68,7 +68,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('POSTGRES_DB', 'mrgrammar'),
         'USER': os.environ.get('POSTGRES_USER', 'mrgrammar'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'mrgrammar_dev'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'change-me-local-password'),
         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
@@ -126,7 +126,7 @@ MRGRAMMAR = {
     'SPACY_MODEL': os.environ.get('SPACY_MODEL', 'de_core_news_md'),
     'SPACY_SENTENCE_SPLIT': os.environ.get('SPACY_SENTENCE_SPLIT', 'True').lower() in ('true', '1', 'yes'),
     'ENABLE_LLM_EXPLANATIONS': os.environ.get('ENABLE_LLM_EXPLANATIONS', 'True').lower() in ('true', '1', 'yes'),
-    'OLLAMA_BASE_URL': os.environ.get('OLLAMA_BASE_URL', 'http://10.0.0.4:11434'),
+    'OLLAMA_BASE_URL': os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434'),
     'OLLAMA_MODEL': os.environ.get('OLLAMA_MODEL', 'gemma4:26b'),
     'OLLAMA_TIMEOUT_SECONDS': int(os.environ.get('OLLAMA_TIMEOUT_SECONDS', '15')),
     'OLLAMA_EXPLANATION_TEMPERATURE': float(os.environ.get('OLLAMA_EXPLANATION_TEMPERATURE', '0.2')),

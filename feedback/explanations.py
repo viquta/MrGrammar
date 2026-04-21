@@ -16,7 +16,7 @@ class ExplanationGenerationService:
     def __init__(self):
         config = settings.MRGRAMMAR
         self.enabled = config.get('ENABLE_LLM_EXPLANATIONS', True)
-        self.base_url = config.get('OLLAMA_BASE_URL', 'http://10.0.0.4:11434').rstrip('/')
+        self.base_url = config.get('OLLAMA_BASE_URL', 'http://localhost:11434').rstrip('/')
         self.model = config.get('OLLAMA_MODEL', 'gemma4:26b')
         self.timeout = config.get('OLLAMA_TIMEOUT_SECONDS', 15)
         self.temperature = config.get('OLLAMA_EXPLANATION_TEMPERATURE', 0.2)

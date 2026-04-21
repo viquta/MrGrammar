@@ -1,13 +1,24 @@
 # Python
+.venv/
 venv/
+env/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.sqlite3
 db.sqlite3
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Node
 frontend/node_modules/
 frontend/.svelte-kit/
+frontend/build/
 
 # Docker
 pgdata/
@@ -24,3 +35,8 @@ Thumbs.db
 
 # Environment
 .env
+.env.*
+!.env.example
+
+# Logs
+*.log

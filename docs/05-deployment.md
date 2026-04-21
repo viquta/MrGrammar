@@ -34,7 +34,7 @@ MrGrammar runs as a set of four Docker containers orchestrated by Docker Compose
 
 All services communicate over a shared Docker Compose network. The frontend and backend expose ports to the host for browser access and API calls.
 
-The backend also makes outbound HTTP requests to an Ollama instance on the local network. In the current development setup this is expected at `10.0.0.4:11434` and is used only for phase-3 explanation generation.
+The backend also makes outbound HTTP requests to an Ollama instance configured via `OLLAMA_BASE_URL`. In Docker-based local development, a common setup is `http://host.docker.internal:11434`; in non-Docker local development, `http://localhost:11434` is a typical choice. This integration is used only for phase-3 explanation generation.
 
 ---
 
@@ -49,7 +49,7 @@ The backend also makes outbound HTTP requests to an Ollama instance on the local
 | Container port | `5432` |
 | Volume | `pgdata:/var/lib/postgresql/data` |
 
-Initialises with the database `mrgrammar`, user `mrgrammar`, and password `mrgrammar_dev`. These defaults are suitable for local development only.
+Initialises with the database `mrgrammar`, user `mrgrammar`, and a password supplied through `POSTGRES_PASSWORD`. The example defaults in this repository are intended for local development only and should be replaced in any shared or deployed environment.
 
 ### `languagetool` — Grammar Checker
 
@@ -111,14 +111,14 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | `DJANGO_DEBUG` | `True` | Enable Django debug mode |
 | `POSTGRES_DB` | `mrgrammar` | Database name |
 | `POSTGRES_USER` | `mrgrammar` | Database user |
-| `POSTGRES_PASSWORD` | `mrgrammar_dev` | Database password |
+| `POSTGRES_PASSWORD` | `change-me-local-password` | Database password |
 | `POSTGRES_HOST` | `db` | Database hostname (Docker service name) |
 | `POSTGRES_PORT` | `5432` | Database port |
 | `LANGUAGETOOL_URL` | `http://languagetool:8010/v2` | LanguageTool API base URL |
 | `SPACY_MODEL` | `de_core_news_md` | spaCy model name loaded by `SpacyTextProcessor` |
 | `SPACY_SENTENCE_SPLIT` | `True` | Whether to use spaCy sentence splitting for per-sentence LanguageTool analysis |
 | `ENABLE_LLM_EXPLANATIONS` | `True` | Enable final-answer explanation generation |
-| `OLLAMA_BASE_URL` | `http://10.0.0.4:11434` | Ollama API base URL for explanation generation |
+| `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | Ollama API base URL for explanation generation when the backend runs in Docker |
 | `OLLAMA_MODEL` | `gemma4:26b` | Ollama model name used for explanations |
 | `OLLAMA_TIMEOUT_SECONDS` | `15` | Timeout for explanation requests |
 | `OLLAMA_EXPLANATION_TEMPERATURE` | `0.2` | Sampling temperature for explanation generation |
@@ -136,7 +136,7 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 |----------|---------|-------------|
 | `POSTGRES_DB` | `mrgrammar` | Database to create on first run |
 | `POSTGRES_USER` | `mrgrammar` | Superuser name |
-| `POSTGRES_PASSWORD` | `mrgrammar_dev` | Superuser password |
+| `POSTGRES_PASSWORD` | `change-me-local-password` | Superuser password |
 
 ### LanguageTool Service
 
@@ -163,7 +163,7 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 ```
 frontend ──depends_on──→ backend ──depends_on──→ db
                                   ──depends_on──→ languagetool
-                                  ──HTTP────────→ ollama host (10.0.0.4:11434)
+                                  ──HTTP────────→ ollama host (`OLLAMA_BASE_URL`)
 ```
 
 Docker Compose starts services in dependency order:
@@ -240,8 +240,8 @@ All four services share a single Docker Compose default network. Inter-service c
 | Frontend (browser) | Backend | HTTP/JSON | `localhost:8000/api/` |
 | Backend | Database | PostgreSQL wire protocol | `db:5432` |
 | Backend (nlp) | LanguageTool | HTTP | `languagetool:8010/v2/check` |
-| Backend (feedback) | Ollama | HTTP | `10.0.0.4:11434/api/generate` |
+| Backend (feedback) | Ollama | HTTP | `OLLAMA_BASE_URL/api/generate` |
 
 > **CORS**: The backend includes `django-cors-headers` middleware configured to accept requests from `http://localhost:5173` (the frontend's origin). This is required because the browser makes cross-origin API calls from the SvelteKit dev server to the Django API server.
 
-> **Ollama reachability**: When the backend runs in Docker, `OLLAMA_BASE_URL` must point to an address reachable from inside the backend container. In the current setup this is the LAN IP `10.0.0.4`. If the Ollama host or port changes, update the environment variable rather than hardcoding the address.
+> **Ollama reachability**: When the backend runs in Docker, `OLLAMA_BASE_URL` must point to an address reachable from inside the backend container. `host.docker.internal` is often a good local-development default on macOS and Windows, but any reachable hostname or IP works. Keep that value in environment configuration rather than hardcoding it in the repository.

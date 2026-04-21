@@ -27,7 +27,10 @@ All diagrams are in Draw.io XML format (`.drawio`). Open them with:
 | Class Diagram | [diagrams/class-diagram.drawio](diagrams/class-diagram.drawio) | UML Class Diagram — 7 models, 5 enumerations, associations with cardinality |
 | Auth Sequence | [diagrams/sequence-auth.drawio](diagrams/sequence-auth.drawio) | UML Sequence — Registration → Login → JWT lifecycle |
 | Submission Sequence | [diagrams/sequence-submission.drawio](diagrams/sequence-submission.drawio) | UML Sequence — Submit text → NLP analysis → Error display |
-| Correction Sequence | [diagrams/sequence-correction.drawio](diagrams/sequence-correction.drawio) | UML Sequence — Guided correction workflow with 4 scenarios |
+| Correction Sequence | [diagrams/sequence-correction.drawio](diagrams/sequence-correction.drawio) | Legacy UML Sequence — older correction flow kept for reference until redrawn |
+| Workflow Phase 1 Concept | [diagrams/my_idea_workflow_phase_1.drawio](diagrams/my_idea_workflow_phase_1.drawio) | Product workflow concept — analyze text and render grouped highlights |
+| Workflow Phase 2 Concept | [diagrams/my_idea_workflow_phase_2.drawio](diagrams/my_idea_workflow_phase_2.drawio) | Product workflow concept — second try, correctness check, and hint path |
+| Workflow Phase 3 Concept | [diagrams/my_idea_workflow_phase_3.drawio](diagrams/my_idea_workflow_phase_3.drawio) | Product workflow concept — third try, answer reveal, and short explanation |
 | Component & Deployment | [diagrams/component-deployment.drawio](diagrams/component-deployment.drawio) | UML Component + Deployment — Docker containers, components, interfaces |
 
 ### Exporting Diagrams to PNG
@@ -48,7 +51,7 @@ The Markdown documents reference these exported PNGs at their expected paths in 
 |-------|-----------|---------|
 | Frontend | SvelteKit + Svelte 5 + Tailwind CSS 4 | SvelteKit 2.57 |
 | Backend | Django + Django REST Framework + SimpleJWT | Django 6.0 |
-| NLP | LanguageTool (self-hosted) + RapidFuzz | — |
+| NLP | LanguageTool (self-hosted) + spaCy + Ollama | — |
 | Database | PostgreSQL | 16 |
 | Infrastructure | Docker Compose | — |
 
@@ -61,7 +64,7 @@ MrGrammar/
 ├── accounts/          # User model, authentication, role-based permissions
 ├── classrooms/        # Classroom and membership management
 ├── submissions/       # Student text submission lifecycle
-├── feedback/          # Error detection records, correction workflow service
+├── feedback/          # Error records, correction workflow, explanation generation
 ├── nlp/               # LanguageTool integration, error detection pipeline
 ├── analytics/         # Error summary aggregation, student/classroom analytics
 ├── mrgrammar/         # Django project settings, URL routing
