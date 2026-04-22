@@ -1,4 +1,5 @@
-# I'm still building the project! Currently (vers 0.0.4 does NOT have a very good NLP/AI pipeline to make it functional for real German learning 
+# I'm still building the project! 
+Currently it (vers 0.0.4) does NOT have a very good NLP/AI pipeline to make it functional for real German learning.
 
 ## Acknowledgements
 
