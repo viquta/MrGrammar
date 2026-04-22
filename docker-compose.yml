@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mrgrammar
+      POSTGRES_USER: mrgrammar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  languagetool:
+    image: erikvl87/languagetool:latest
+    ports:
+      - "8010:8010"
+    environment:
+      Java_Xms: 256m
+      Java_Xmx: 512m
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: mrgrammar
+      POSTGRES_USER: mrgrammar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-password}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-unsafe-dev-secret-key-change-me}
+      LANGUAGETOOL_URL: http://languagetool:8010/v2
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:26b}
+      DJANGO_DEBUG: "True"
+    depends_on:
+      - db
+      - languagetool
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000/api}
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
