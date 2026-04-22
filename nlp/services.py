@@ -152,7 +152,8 @@ class LanguageToolClient:
         return self.CATEGORY_MAP.get(lt_category, DetectedError.Category.OTHER)
 
 
-class SpacyGrammarDetector:
+class SpacyGrammarDetector: 
+    #own commentim not sure if this is really necessary, if I will use an LLM for the things that languagetool misses, or idk...
     """
     Uses spaCy's German model to catch errors that LanguageTool misses:
     - Out-of-vocabulary words (misspellings like 'hauptjobb', 'bestehd')

@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 class AnalyzeSubmissionView(APIView):
     def post(self, request, submission_id):
+        """
+        AnalyzeSubmissionView.post sets the submission to analyzing, 
+        calls ErrorDetectionService, then moves it to in review.
+        """
         try:
             submission = TextSubmission.objects.get(
                 pk=submission_id, student=request.user,
