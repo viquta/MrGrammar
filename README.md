@@ -18,7 +18,7 @@ This repository already contains a working full-stack prototype, but it is still
 - Django + Django REST Framework backend
 - SvelteKit frontend
 - PostgreSQL database
-- German error detection pipeline using LanguageTool and spaCy
+- German error detection pipeline using (local) LanguageTool server and spaCy library
 - Guided correction workflow with hints and answer reveal
 - Teacher and student oriented analytics foundation
 
