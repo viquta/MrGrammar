@@ -237,19 +237,19 @@
 						</p>
 					</div>
 					<h2 class="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">Your Text</h2>
-					<div class="text-lg leading-relaxed whitespace-pre-wrap">
+					<div class="text-lg leading-[2.8rem] whitespace-pre-wrap">
 						{#each segments as seg}
 							{#if seg.error}
 								<button
 									onclick={() => selectError(seg.error!)}
-									class="relative inline border-b-2 rounded-sm px-0.5 cursor-pointer transition
+									class="relative inline-flex align-baseline border-b-2 rounded-sm px-0.5 pt-5 pb-0.5 cursor-pointer transition
 										{groupColors[seg.error.display_group] ?? 'bg-gray-200 border-gray-400 text-gray-900'}
 										{seg.error.is_resolved ? 'opacity-40 line-through' : ''}
 										{activeError?.id === seg.error.id ? 'ring-2 ring-stone-900' : ''}"
 									title="{seg.error.display_label}"
 								>
 									{seg.text}
-									<span class="absolute -top-5 left-0 text-xs font-medium whitespace-nowrap pointer-events-none">
+									<span class="absolute left-0 top-1 text-[11px] font-medium whitespace-nowrap pointer-events-none text-stone-700">
 										{seg.error.display_label}
 									</span>
 								</button>

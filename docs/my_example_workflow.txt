@@ -1,0 +1,73 @@
+This example is what happens right after a student has clicked "Submit to Analyze"
+
+Let's say that the student wrote something like: 
+
+"Heute früh habe ich mein Tochter aufgewacht mit ein Lied. 
+Sie wolte erst nicht wachen, also habe ich gesagd dass das
+ihre Mutter bald kommt mit Bobby, unsere Hund. Und ja, der
+Mamma von meiner Tochter kommt gerade und wir haben sie 
+aufgewacht mit ein Spiel. Diese Spiel heißt: "finde die 
+Kartoffel." Es ist ein kleines Kitzel am die finger am Fußen
+(ich weiß nicht wie sie heißen)."
+
+
+
+
+What happens next in MrGrammar:
+
+1. The frontend calls POST /api/nlp/submissions/{submission_id}/analyze/
+  This is the real app entry point after the student clicks "Submit to Analyze".
+
+2. The backend sets the submission status from SUBMITTED to ANALYZING.
+  This means the text is now being processed by the NLP pipeline.
+
+3. ErrorDetectionService reads the full submission text and builds a spaCy doc.
+  spaCy is used for sentence splitting, POS tagging, and later context/category enrichment.
+
+4. LanguageTool is called sentence by sentence.
+  The raw LanguageTool JSON is not stored as-is. Instead, each match is converted into a smaller internal error payload with:
+  - start_offset
+  - end_offset
+  - original_text
+  - correct_solution
+  - hint_text
+  - error_category
+  - languagetool_rule_id
+
+5. spaCy runs as a second detector and also helps post-process the LanguageTool results.
+  At this stage MrGrammar can:
+  - reclassify an error into a more useful teaching category
+  - attach the POS tag at the error position
+  - extract linguistic context for later use
+
+6. Duplicate matches are removed and DetectedError rows are created in the database.
+  So for example, the first LanguageTool match:
+  - original text: "mein Tochter"
+  - replacement suggestions: "meine Tochter", "meiner Tochter"
+  becomes one DetectedError record with the text span, hint text, best solution, and the LanguageTool rule id.
+
+7. The submission status changes from ANALYZING to IN_REVIEW.
+  At this point the analysis phase is finished.
+
+8. The frontend then requests GET /api/feedback/submissions/{submission_id}/errors/
+  This returns the learner-facing error list.
+
+9. The learner does not immediately receive the full LanguageTool payload.
+  The API intentionally hides hint_text and correct_solution at first. The frontend mainly gets:
+  - the error span in the original text
+  - the original incorrect text
+  - the mapped error category
+  - presentation labels/groups for highlighting
+  - whether solution reveal is currently allowed
+
+10. The student starts correcting one error at a time.
+   When the student submits a correction, the frontend calls POST /api/feedback/errors/{error_id}/attempt/
+
+11. Correction workflow per error:
+   - if the attempt is correct, the error is marked resolved
+   - if the attempt is wrong but still below the final threshold, the student gets either retry feedback or a hint
+   - if the attempt reaches the final step, the backend reveals the stored correct_solution and generates an explanation
+   - the student can also use POST /api/feedback/errors/{error_id}/solution/ once manual reveal becomes available
+
+12. In other words, LanguageTool is only the detection step.
+   MrGrammar takes that raw output, turns it into DetectedError records, and then uses those records to drive the guided learning workflow.
