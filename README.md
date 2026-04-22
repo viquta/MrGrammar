@@ -1,3 +1,5 @@
+# I'm still building the project! Currently (vers 0.0.4 does NOT have a very good NLP/AI pipeline to make it functional for real German learning 
+
 ## Acknowledgements
 
 This project has been implemented with substantial AI assistance during development. Claude and GPT were both used to help with coding, iteration, and implementation support.
