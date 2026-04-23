@@ -1,42 +1,37 @@
-# sv
+# MrGrammar — Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit 2 + Svelte 5 + Tailwind CSS 4 + TypeScript frontend for the MrGrammar platform.
 
-## Creating a project
+## Tech stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+| Technology | Version |
+|------------|---------|
+| SvelteKit | 2.57 |
+| Svelte | 5 |
+| Tailwind CSS | 4 |
+| TypeScript | 6 |
+| Vite | 8 |
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Development
 
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@0.15.1 create --template minimal --types ts --no-install frontend
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Install dependencies and start the dev server:
 
 ```sh
+npm install
 npm run dev
+```
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+The app expects the Django backend API to be available. Configure the URL via the `PUBLIC_API_URL` environment variable (defaults to `http://localhost:8000/api`). See `.env.example` in the project root.
+
+## Type checking
+
+```sh
+npm run check
 ```
 
 ## Building
 
-To create a production version of your app:
-
 ```sh
 npm run build
+npm run preview   # preview the production build locally
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
