@@ -5,6 +5,28 @@
 
 MrGrammar is a grammar-feedback platform for German language learning. The project focuses on a more active correction workflow than typical writing assistants: students should notice an error, try to fix it, receive a hint if needed, and only then see the final answer. The longer-term goal is to help teachers reduce correction workload while still getting useful insight into student progress and recurring error patterns.
 
+## Screenshots
+
+### Login
+![Login page](docs/pics/login_page.png)
+
+### Student Dashboard
+![Student dashboard](docs/pics/student_dashboard.png)
+
+### Submissions List
+![Submissions list](docs/pics/student_submission_list.png)
+
+### Post-Analysis View — Error Highlights (Phase 1)
+![Highlighted errors after analysis](docs/pics/post_analysis.png)
+
+### Correction Workflow — Second Try (Phase 2)
+![Second try correction step](docs/pics/attempt_2.png)
+
+### Correction Workflow — Third Try with Hint (Phase 3)
+![Third try with hint revealed](docs/pics/attempt_3.png)
+
+---
+
 ## Acknowledgements
 
 This project has been implemented with substantial AI assistance during development. Claude and GPT were both used to help with coding, iteration, and implementation support. Furthermore, I'm very greatful to LanguageTool for open-sourcing their rule-based server. It has helped this project immensely! With that in mind, SpaCy is one heck of a library which I am happily using. 
