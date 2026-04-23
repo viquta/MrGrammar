@@ -125,6 +125,7 @@ MRGRAMMAR = {
     'LANGUAGETOOL_URL': os.environ.get('LANGUAGETOOL_URL', 'http://localhost:8010/v2'),
     'SPACY_MODEL': os.environ.get('SPACY_MODEL', 'de_core_news_md'),
     'SPACY_SENTENCE_SPLIT': os.environ.get('SPACY_SENTENCE_SPLIT', 'True').lower() in ('true', '1', 'yes'),
+    'ENABLE_ADVANCED_GERMAN_CHECKS': os.environ.get('ENABLE_ADVANCED_GERMAN_CHECKS', 'False').lower() in ('true', '1', 'yes'),
     'ENABLE_LLM_EXPLANATIONS': os.environ.get('ENABLE_LLM_EXPLANATIONS', 'True').lower() in ('true', '1', 'yes'),
     'OLLAMA_BASE_URL': os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434'),
     'OLLAMA_MODEL': os.environ.get('OLLAMA_MODEL', 'gemma4:26b'),
