@@ -6,6 +6,7 @@ from django.conf import settings
 
 from feedback.models import DetectedError
 from submissions.models import TextSubmission
+from .advanced_german_detector import AdvancedGermanGrammarDetector
 from .spacy_processor import SpacyTextProcessor, SentenceSpan
 
 logger = logging.getLogger(__name__)
@@ -282,6 +283,8 @@ class ErrorDetectionService:
     def __init__(self, detectors: list[ErrorDetector] | None = None):
         if detectors is None:
             self.detectors = [LanguageToolClient(), SpacyGrammarDetector()]
+            if settings.MRGRAMMAR.get('ENABLE_ADVANCED_GERMAN_CHECKS', False):
+                self.detectors.append(AdvancedGermanGrammarDetector())
         else:
             self.detectors = detectors
         self.spacy_processor = SpacyTextProcessor()

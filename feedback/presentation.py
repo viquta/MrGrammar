@@ -19,6 +19,17 @@ def derive_display_group(error: DetectedError) -> str:
     if error.error_category == DetectedError.Category.SPELLING:
         return 'spelling_word_choice'
 
+    if any(token in rule_id for token in {
+        'HAUPTSATZ',
+        'NEBENSATZ',
+        'WORD_ORDER',
+        'PUNCT',
+        'COMMA',
+        'CLAUSE',
+        'SENTENCE',
+    }):
+        return 'syntax'
+
     if pos_tag in {'VERB', 'AUX'} or error.error_category == DetectedError.Category.VERB_TENSE:
         return 'verb_phrase'
 
@@ -33,17 +44,6 @@ def derive_display_group(error: DetectedError) -> str:
 
     if pos_tag in {'DET', 'NOUN', 'PROPN', 'PRON'}:
         return 'noun_phrase'
-
-    if any(token in rule_id for token in {
-        'HAUPTSATZ',
-        'NEBENSATZ',
-        'WORD_ORDER',
-        'PUNCT',
-        'COMMA',
-        'CLAUSE',
-        'SENTENCE',
-    }):
-        return 'syntax'
 
     if error.error_category in {
         DetectedError.Category.GRAMMAR,

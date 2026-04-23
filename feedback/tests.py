@@ -158,6 +158,19 @@ class FeedbackViewsTests(APITestCase):
 		self.assertEqual(response.data[0]['next_try_number'], 2)
 		self.assertFalse(response.data[0]['can_request_solution'])
 
+	def test_submission_errors_endpoint_maps_word_order_rules_to_syntax(self):
+		self.error.languagetool_rule_id = 'GERMAN_WORD_ORDER_SUBORDINATE'
+		self.error.error_category = DetectedError.Category.GRAMMAR
+		self.error.spacy_pos_tag = 'PRON'
+		self.error.save(update_fields=['languagetool_rule_id', 'error_category', 'spacy_pos_tag'])
+
+		url = reverse('submission-errors', kwargs={'submission_id': self.submission.id})
+
+		response = self.client.get(url)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.data[0]['display_group'], 'syntax')
+
 	def test_cannot_request_solution_before_first_failed_attempt(self):
 		url = reverse('request-solution', kwargs={'pk': self.error.id})
 

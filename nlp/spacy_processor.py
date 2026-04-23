@@ -136,6 +136,16 @@ class SpacyTextProcessor:
         if token_info is None:
             return lt_category
 
+        upper_rule_id = (lt_rule_id or '').upper()
+        if upper_rule_id.startswith('GERMAN_WORD_ORDER_'):
+            return DetectedError.Category.GRAMMAR
+        if upper_rule_id.startswith('GERMAN_ARTICLE_'):
+            return DetectedError.Category.ARTICLE
+        if upper_rule_id.startswith('GERMAN_ADJECTIVE_'):
+            return DetectedError.Category.GRAMMAR
+        if upper_rule_id.startswith('GERMAN_VERB_'):
+            return DetectedError.Category.VERB_TENSE
+
         pos = token_info.pos
         morph = token_info.morph
 
