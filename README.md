@@ -1,13 +1,13 @@
 # MrGrammar
 
 > **Public beta — still under active development.**  
-> Version 0.0.4 does not yet have a production-quality NLP pipeline. Expect rough edges.
+> Version 0.0.5 does not yet have a production-quality NLP pipeline. Expect rough edges.
 
 MrGrammar is a grammar-feedback platform for German language learning. The project focuses on a more active correction workflow than typical writing assistants: students should notice an error, try to fix it, receive a hint if needed, and only then see the final answer. The longer-term goal is to help teachers reduce correction workload while still getting useful insight into student progress and recurring error patterns.
 
 ## Acknowledgements
 
-This project has been implemented with substantial AI assistance during development. Claude and GPT were both used to help with coding, iteration, and implementation support.
+This project has been implemented with substantial AI assistance during development. Claude and GPT were both used to help with coding, iteration, and implementation support. Furthermore, I'm very greatful to LanguageTool for open-sourcing their rule-based server. It has helped this project immensely! With that in mind, SpaCy is one heck of a library which I am happily using. 
 
 ## Current Scope
 
