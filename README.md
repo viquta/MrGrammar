@@ -3,7 +3,7 @@ Currently it (vers 0.0.4) does NOT have a very good NLP/AI pipeline to make it f
 
 ## Acknowledgements
 
-This project has been implemented with substantial AI assistance during development. Claude and GPT were both used to help with coding, iteration, and implementation support.
+This project has been implemented with substantial AI assistance during development. Claude and GPT were both used to help with coding, iteration, and implementation support. Furthermore, I'm very greatful to LanguageTool for open-sourcing their rule-based server. It has helped this project immensely! With that in mind, SpaCy is one heck of a library which I am happily using. 
 
 # MrGrammar
 
