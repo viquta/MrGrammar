@@ -5,8 +5,6 @@ This document describes the persistent data model of MrGrammar. The system uses 
 The learner workflow also exposes several **derived presentation fields** through DRF serializers, such as grammatical-role highlight groups and phase labels. Those values are not stored as database columns unless explicitly noted below.
 
 > **UML Class Diagram**: Open [`diagrams/class-diagram.drawio`](diagrams/class-diagram.drawio) in the Draw.io VS Code extension or at [diagrams.net](https://app.diagrams.net) to view the full class diagram with associations and cardinalities.
->
-> ![Class Diagram](diagrams/exported/class-diagram.png)
 
 ---
 
@@ -40,7 +38,7 @@ The custom user model adds a `role` field to Django's built-in user to distingui
 | `password` | String | hashed | — | Password (via `create_user()`) |
 | `first_name` | String | max 150 | `''` | Given name |
 | `last_name` | String | max 150 | `''` | Family name |
-| `role` | String(10) | choices: `UserRole` | `STUDENT` | User role within the system |
+| `role` | String(10) | choices: `UserRole` | `student` | User role within the system |
 | `is_active` | Boolean | — | `True` | Account active flag |
 | `is_staff` | Boolean | — | `False` | Django admin access |
 | `date_joined` | DateTime | auto | — | Registration timestamp |
@@ -49,9 +47,9 @@ The custom user model adds a `role` field to Django's built-in user to distingui
 
 | Member | Returns | Description |
 |--------|---------|-------------|
-| `is_student` | Boolean | `True` if `role == STUDENT` |
-| `is_teacher` | Boolean | `True` if `role == TEACHER` |
-| `is_admin_user` | Boolean | `True` if `role == ADMIN` |
+| `is_student` | Boolean | `True` if `role == 'student'` |
+| `is_teacher` | Boolean | `True` if `role == 'teacher'` |
+| `is_admin_user` | Boolean | `True` if `role == 'admin'` |
 | `__str__()` | String | `"{full_name} ({role})"` |
 
 ### Ordering
@@ -139,14 +137,14 @@ Represents a student's text submission within a classroom. The `status` field tr
 | `title` | String(300) | — | — | Submission title |
 | `content` | Text | — | — | Full text body |
 | `language` | String(10) | — | `'de'` | Text language for NLP |
-| `status` | String(15) | choices: `SubmissionStatus` | `SUBMITTED` | Current lifecycle stage |
+| `status` | String(15) | choices: `SubmissionStatus` | `submitted` | Current lifecycle stage |
 | `submitted_at` | DateTime | auto_now_add | — | Submission timestamp |
 | `updated_at` | DateTime | auto_now | — | Last modification timestamp |
 
 ### Status Workflow
 
 ```
-SUBMITTED  →  ANALYZING  →  IN_REVIEW  →  COMPLETED
+submitted  →  analyzing  →  in_review  →  completed
    (new)      (NLP running)  (errors found) (all resolved)
 ```
 
@@ -178,7 +176,7 @@ Represents a single error detected in a student's text by the NLP pipeline. Char
 | `id` | Integer | PK, auto-increment | — | Primary key |
 | `submission` | FK → `TextSubmission` | CASCADE | — | Parent submission |
 | `error_category` | String(20) | choices: `ErrorCategory` | — | Classified error type |
-| `severity` | String(10) | choices: `Severity` | `MEDIUM` | Error severity level |
+| `severity` | String(10) | choices: `Severity` | `medium` | Error severity level |
 | `start_offset` | Integer | ≥ 0 | — | Start character offset in `content` |
 | `end_offset` | Integer | ≥ 0 | — | End character offset in `content` |
 | `original_text` | Text | — | — | Erroneous text span |
@@ -188,6 +186,8 @@ Represents a single error detected in a student's text by the NLP pipeline. Char
 | `spacy_pos_tag` | String(20) | blank allowed | `''` | spaCy POS tag of the token at the error offset (e.g. `NOUN`, `VERB`) |
 | `error_context` | JSON | blank allowed | `{}` | Linguistic context from spaCy: surrounding POS tags, dependency relations, named entities |
 | `is_resolved` | Boolean | — | `False` | Whether the student has successfully corrected this error |
+| `resolution_method` | String(20) | blank allowed, choices: `ResolutionMethod` | `''` | How the error was resolved (`correct`, `solution_revealed`, `manual_reveal`) |
+| `resolved_at` | DateTime | null/blank allowed | `null` | Timestamp set when the error becomes resolved |
 | `created_at` | DateTime | auto_now_add | — | Detection timestamp |
 
 ### Derived API Presentation Fields (Not Persisted)
@@ -205,6 +205,7 @@ The feedback serializers compute several fields from the stored `DetectedError`,
 
 - `hint_text` is reused both for the phase-2 hint response and as fallback explanation context if the Ollama host is unavailable.
 - `correct_solution` is persisted so the backend can validate typed corrections, reveal the final answer, and seed the final explanation prompt.
+- `resolution_method` and `resolved_at` are set by `CorrectionWorkflowService._mark_resolved()` for both successful corrections and reveal-driven completions.
 - Final explanation text itself is **not** persisted on `DetectedError`; it is generated on demand in the feedback layer.
 
 ### Relationships
@@ -305,7 +306,7 @@ Pre-computed aggregation of error statistics per student, per submission, per er
 ### Analytics Scope Notes
 
 - Summaries are currently grouped by persistent `error_category`, not by the derived `display_group` used in the frontend.
-- Manual reveal versus final failed third try is not persisted as a dedicated analytics column; both can be reconstructed from workflow responses or extended later if teacher reporting requires it.
+- Manual reveal versus final failed third try is persisted indirectly through `DetectedError.resolution_method`, and the analytics layer reconstructs counts from that field plus related attempts.
 
 ---
 
@@ -315,45 +316,53 @@ Pre-computed aggregation of error statistics per student, per submission, per er
 
 | Value | Label | Description |
 |-------|-------|-------------|
-| `STUDENT` | Student | Can submit texts and attempt corrections |
-| `TEACHER` | Teacher | Can create classrooms, manage members, view analytics |
-| `ADMIN` | Admin | Full system access across all classrooms |
+| `student` | Student | Can submit texts and attempt corrections |
+| `teacher` | Teacher | Can create classrooms, manage members, view analytics |
+| `admin` | Admin | Full system access across all classrooms |
 
 ### SubmissionStatus
 
 | Value | Label | Description |
 |-------|-------|-------------|
-| `SUBMITTED` | Submitted | Initial state after student submits text |
-| `ANALYZING` | Analyzing | NLP pipeline is processing the text |
-| `IN_REVIEW` | In Review | Errors detected and awaiting student correction |
-| `COMPLETED` | Completed | All detected errors have been resolved |
+| `submitted` | Submitted | Initial state after student submits text |
+| `analyzing` | Analyzing | NLP pipeline is processing the text |
+| `in_review` | In Review | Errors detected and awaiting student correction |
+| `completed` | Completed | All detected errors have been resolved |
 
 ### ErrorCategory
 
 | Value | Label | LanguageTool Mapping |
 |-------|-------|---------------------|
-| `GRAMMAR` | Grammar | `GRAMMAR` |
-| `SPELLING` | Spelling | `TYPOS`, `SPELLING`, `CASING` |
-| `ARTICLE` | Article | `ARTICLE`, `DER_DIE_DAS` |
-| `PREPOSITION` | Preposition | `PREPOSITION`, `PRAEP` |
-| `VERB_TENSE` | Verb Tense | `TENSE`, `VERB` |
-| `PUNCTUATION` | Punctuation | `PUNCTUATION`, `TYPOGRAPHY` |
-| `OTHER` | Other | all other rule categories |
+| `grammar` | Grammar | `GRAMMAR` |
+| `spelling` | Spelling | `TYPOS`, `SPELLING`, `CASING` |
+| `article` | Article | `ARTICLE`, `DER_DIE_DAS` |
+| `preposition` | Preposition | `PREPOSITION`, `PRAEP` |
+| `verb_tense` | Verb Tense | `TENSE`, `VERB` |
+| `punctuation` | Punctuation | `PUNCTUATION`, `TYPOGRAPHY` |
+| `other` | Other | all other rule categories |
 
 ### Severity
 
 | Value | Label | Description |
 |-------|-------|-------------|
-| `LOW` | Low | Minor stylistic issue |
-| `MEDIUM` | Medium | Standard grammatical error (default) |
-| `HIGH` | High | Significant error affecting comprehension |
+| `low` | Low | Minor stylistic issue |
+| `medium` | Medium | Standard grammatical error (default) |
+| `high` | High | Significant error affecting comprehension |
 
 ### MembershipRole
 
 | Value | Label | Description |
 |-------|-------|-------------|
-| `STUDENT` | Student | Student member of a classroom |
-| `TEACHER` | Teacher | Teacher/instructor in a classroom |
+| `student` | Student | Student member of a classroom |
+| `teacher` | Teacher | Teacher/instructor in a classroom |
+
+### ResolutionMethod
+
+| Value | Label | Description |
+|-------|-------|-------------|
+| `correct` | Corrected by student | The learner submitted an accepted correction |
+| `solution_revealed` | Revealed after max attempts | The final failed stored attempt revealed the answer |
+| `manual_reveal` | Manually revealed by student | The learner used the gated reveal endpoint |
 
 ---
 

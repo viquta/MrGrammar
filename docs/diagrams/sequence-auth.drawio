@@ -164,12 +164,12 @@
         </mxCell>
 
         <!-- ===== FRAGMENT: Token Refresh ===== -->
-        <mxCell id="frag-refresh" value="Token Refresh (on 401)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-refresh" value="Backend Refresh Support (frontend auto-refresh not implemented)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="50" y="760" width="910" height="140" as="geometry" />
         </mxCell>
 
         <!-- 15. 401 Expired -->
-        <mxCell id="msg-15" value="15: 401 Unauthorized (token expired)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;strokeColor=#b85450;" edge="1" parent="1">
+        <mxCell id="msg-15" value="15: 401 Unauthorized may occur when&#xa;the access token expires" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;strokeColor=#b85450;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="620" y="800" as="sourcePoint" />
             <mxPoint x="380" y="800" as="targetPoint" />
@@ -177,7 +177,7 @@
         </mxCell>
 
         <!-- 16. POST refresh -->
-        <mxCell id="msg-16" value="16: POST /api/auth/token/refresh/&#xa;{refresh: &lt;refresh_token&gt;}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-16" value="16: Backend supports POST /api/auth/token/refresh/&#xa;with {refresh: &lt;refresh_token&gt;}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="380" y="840" as="sourcePoint" />
             <mxPoint x="620" y="840" as="targetPoint" />
@@ -185,7 +185,7 @@
         </mxCell>
 
         <!-- 17. New tokens -->
-        <mxCell id="msg-17" value="17: 200 OK {access, refresh}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-17" value="17: 200 OK {access, refresh}&#xa;(available to clients that implement refresh)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="620" y="870" as="sourcePoint" />
             <mxPoint x="380" y="870" as="targetPoint" />

@@ -50,7 +50,7 @@ The system follows a four-layer architecture with clear separation of concerns.
 ┌─────────────────────────────────────────────────────────┐
 │                  Presentation Layer                      │
 │            SvelteKit SPA (Browser, port 5173)            │
-│    Routes: /, /login, /register, /submissions, /sub/:id  │
+│ Routes: /, /login, /register, /submissions, /submissions/:id, /progress │
 └────────────────────────┬────────────────────────────────┘
                          │  HTTP / JSON (REST)
                          ▼
@@ -85,7 +85,7 @@ The system follows a four-layer architecture with clear separation of concerns.
 
 ### Layer Responsibilities
 
-**Presentation Layer** — The SvelteKit single-page application handles routing, form rendering, authentication state management (JWT tokens in `localStorage`), and the interactive correction UI. The submission detail page is phase-led: phase 1 shows grammatical-role highlights, phase 2 collects the learner's second try, and phase 3 supports the final retry or gated answer reveal.
+**Presentation Layer** — The SvelteKit single-page application handles routing, form rendering, authentication state management (JWT tokens in `localStorage`), and the interactive correction UI. The currently implemented routes are `/`, `/login`, `/register`, `/submissions`, `/submissions/[id]`, and `/progress`. The submission detail page is phase-led: phase 1 shows grammatical-role highlights, phase 2 collects the learner's second try, and phase 3 supports the final retry or gated answer reveal. The dashboard also exposes teacher navigation links to `/classrooms` and `/analytics`, but those teacher pages are not implemented in the current frontend route tree yet.
 
 **API Gateway Layer** — DRF views handle HTTP request/response serialisation, input validation, and permission enforcement. Each Django app (`accounts`, `classrooms`, `submissions`, `feedback`, `nlp`, `analytics`) exposes its own URL namespace under `/api/`. Role-based permissions are enforced via custom permission classes.
 
@@ -101,9 +101,9 @@ MrGrammar defines three user roles through a custom `User` model extending Djang
 
 | Role | Code | Capabilities |
 |------|------|-------------|
-| **Student** | `STUDENT` | Submit texts, view own submissions, attempt corrections, view own progress analytics |
-| **Teacher** | `TEACHER` | Create/manage classrooms, add members, view classroom submissions, access classroom-level analytics |
-| **Admin** | `ADMIN` | Full access to all classrooms, submissions, and analytics |
+| **Student** | `student` | Submit texts, view own submissions, attempt corrections, view own progress analytics |
+| **Teacher** | `teacher` | Create/manage classrooms, add members, view classroom submissions, access classroom-level analytics |
+| **Admin** | `admin` | Full access to all classrooms, submissions, and analytics |
 
 ### Custom Permission Classes
 
@@ -111,10 +111,10 @@ Permission enforcement is implemented in `accounts/permissions.py` as reusable D
 
 | Permission Class | Grants Access To |
 |-----------------|-----------------|
-| `IsStudent` | Users with `role = STUDENT` |
-| `IsTeacher` | Users with `role = TEACHER` |
-| `IsAdminUser` | Users with `role = ADMIN` |
-| `IsTeacherOrAdmin` | Users with `role ∈ {TEACHER, ADMIN}` |
+| `IsStudent` | Users with `role = 'student'` |
+| `IsTeacher` | Users with `role = 'teacher'` |
+| `IsAdminUser` | Users with `role = 'admin'` |
+| `IsTeacherOrAdmin` | Users with `role ∈ {'teacher', 'admin'}` |
 
 Additionally, several views implement **queryset-level filtering** — for example, the submissions list view returns only the requesting student's own submissions, or all submissions in a teacher's classrooms, or the full set for admins.
 
@@ -131,7 +131,7 @@ Authentication uses **JSON Web Tokens (JWT)** via the `djangorestframework-simpl
 | Rotate refresh tokens | Enabled |
 | Blacklist after rotation | Disabled |
 
-The frontend stores the access and refresh tokens in `localStorage`. Every API request includes the access token in the `Authorization: Bearer <token>` header. When an access token expires, the frontend obtains a new one via the `/api/auth/token/refresh/` endpoint.
+The frontend stores the access and refresh tokens in `localStorage`. Every API request includes the access token in the `Authorization: Bearer <token>` header. The backend exposes `/api/auth/token/refresh/`, but the current frontend client only injects the stored bearer token and does not yet implement automatic refresh-and-retry on `401 Unauthorized` responses.
 
 ---
 
@@ -139,10 +139,11 @@ The frontend stores the access and refresh tokens in `localStorage`. Every API r
 
 ### Strategy Pattern — NLP Error Detection
 
-The `ErrorDetectionService` in `nlp/services.py` accepts pluggable detector backends via the Strategy pattern. Two backends are active by default:
+The `ErrorDetectionService` in `nlp/services.py` accepts pluggable detector backends via the Strategy pattern. Two backends are always active, and a third bounded German detector is enabled when `MRGRAMMAR['ENABLE_ADVANCED_GERMAN_CHECKS']` is true. In the checked-in Docker Compose setup, that flag is enabled for the backend container.
 
 1. **`LanguageToolClient`** — calls the self-hosted LanguageTool REST API for grammar rule-based detection. Supports per-sentence detection via `detect_by_sentences()`, where spaCy splits the text into sentences and each sentence is checked individually to avoid cross-sentence confusion.
 2. **`SpacyGrammarDetector`** — uses the spaCy German model (`de_core_news_md`) to catch errors that LanguageTool misses, particularly out-of-vocabulary (OOV) misspellings common in learner German (e.g., "hauptjobb" → "Hauptjob") and missing noun capitalisation. Suggestions are generated via Levenshtein distance over the model's vector vocabulary.
+3. **`AdvancedGermanGrammarDetector`** — adds bounded B1/B2-oriented checks for subordinate-clause word order, feminine noun-phrase agreement, and `würde` + infinitive patterns.
 
 Both backends feed into a shared post-processing step where `SpacyTextProcessor` enriches each error with POS-based category overrides and linguistic context metadata.
 
@@ -151,9 +152,10 @@ ErrorDetectionService
     ├── analyze(submission) → List[DetectedError]
     ├── SpacyTextProcessor       (pre/post-processing)
     └── detectors: List[ErrorDetector]
-            ├── LanguageToolClient         (grammar rules)
-            │       └── detect_by_sentences()  (spaCy sentence split)
-            └── SpacyGrammarDetector       (OOV, capitalisation)
+            ├── LanguageToolClient            (grammar rules)
+            │       └── detect_by_sentences() (spaCy sentence split)
+            ├── SpacyGrammarDetector          (OOV, capitalisation)
+            └── AdvancedGermanGrammarDetector (bounded German checks)
 ```
 
 #### SpacyTextProcessor (`nlp/spacy_processor.py`)
@@ -185,11 +187,11 @@ The `LanguageToolClient` maps LanguageTool's internal rule categories to the app
 
 ### Phase-Led Guided Correction Workflow
 
-The `CorrectionWorkflowService` in `feedback/services.py` implements a guided correction loop controlled by three configuration parameters. The backend stores correction attempts as a 1-based internal counter, while the frontend maps those attempts to the learner-facing second-try and third-try phases.
+The `CorrectionWorkflowService` in `feedback/services.py` implements a guided correction loop controlled by two `settings.MRGRAMMAR` configuration parameters plus one service constant. The backend stores correction attempts as a 1-based internal counter, while the frontend maps those attempts to the learner-facing second-try and third-try phases.
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `SIMILARITY_THRESHOLD` | 0.85 | Levenshtein ratio above which an attempt is accepted as correct |
+| `SIMILARITY_THRESHOLD` | 0.85 | Service constant in `CorrectionWorkflowService`; Levenshtein ratio above which an attempt is accepted as correct |
 | `HINT_THRESHOLD` | 1 | Internal attempt number at which a hint is revealed and manual reveal becomes available |
 | `MAX_CORRECTION_ATTEMPTS` | 2 | Internal attempt number at which the final answer and explanation are revealed |
 
@@ -208,7 +210,7 @@ The final explanation text is generated on demand by `ExplanationGenerationServi
 Views in `submissions` and `classrooms` dynamically filter querysets based on the authenticated user's role. This pattern centralises access control at the ORM level rather than relying solely on object-level permission checks:
 
 - **Student** → `queryset.filter(student=request.user)`
-- **Teacher** → `queryset.filter(classroom__memberships__user=request.user, classroom__memberships__role='TEACHER')`
+- **Teacher** → `queryset.filter(classroom__memberships__user=request.user, classroom__memberships__role='teacher')`
 - **Admin** → unfiltered queryset
 
 ---
@@ -226,7 +228,7 @@ The backend is organised into six Django apps, each with a focused domain respon
 | `nlp` | NLP error detection pipeline | `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector`, `SpacyTextProcessor` |
 | `analytics` | Progress tracking & statistics | `LearnerErrorSummary` model, `AnalyticsService` |
 
-The frontend is a SvelteKit application with five routes:
+The frontend is a SvelteKit application with six implemented routes:
 
 | Route | Page | Purpose |
 |-------|------|---------|
@@ -235,6 +237,9 @@ The frontend is a SvelteKit application with five routes:
 | `/register` | Registration | User creation with role selection |
 | `/submissions` | Submission list | View all submissions with creation form |
 | `/submissions/[id]` | Submission detail | Error-highlighted text with guided correction UI |
+| `/progress` | Progress dashboard | Student analytics view |
+
+Teacher-facing dashboard links for `/classrooms` and `/analytics` are present in the root page, but those frontend routes are still planned rather than implemented.
 
 ---
 

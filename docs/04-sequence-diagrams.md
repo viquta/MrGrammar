@@ -18,8 +18,6 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 
 **Diagram**: [`diagrams/sequence-auth.drawio`](diagrams/sequence-auth.drawio)
 
-![Authentication Sequence](diagrams/exported/sequence-auth.png)
-
 ### Participants
 
 | Participant | Role |
@@ -56,9 +54,9 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 
 #### Token Refresh
 
-15. If an API request returns `401 Unauthorized` (expired access token), the frontend intercepts the error.
-16. The frontend sends `POST /api/auth/token/refresh/` with the stored refresh token.
-17. The backend validates the refresh token, generates a new access/refresh pair (rotation enabled), and returns them. The frontend updates `localStorage` with the new tokens and retries the original request.
+15. The backend supports refresh-token rotation via `POST /api/auth/token/refresh/` when a client presents a valid refresh token.
+16. The current frontend stores the refresh token in `localStorage`, but its API client does **not** yet implement automatic `401` interception, refresh, and retry.
+17. If automatic refresh is added later, the client-side flow would call the refresh endpoint, replace both stored tokens, and retry the failed request.
 
 ### Implementation References
 
@@ -69,7 +67,7 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 | Token refresh | SimpleJWT `TokenRefreshView` |
 | User profile | `accounts/views.py` → `MeView` |
 | Frontend auth store | `frontend/src/lib/stores/auth.ts` |
-| Frontend API client | `frontend/src/lib/api.ts` (Bearer token injection) |
+| Frontend API client | `frontend/src/lib/api.ts` (Bearer token injection only; no auto-refresh yet) |
 | JWT configuration | `mrgrammar/settings.py` → `SIMPLE_JWT` dict |
 
 ---
@@ -77,8 +75,6 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 ## 2. Submission & NLP Analysis Flow
 
 **Diagram**: [`diagrams/sequence-submission.drawio`](diagrams/sequence-submission.drawio)
-
-![Submission Sequence](diagrams/exported/sequence-submission.png)
 
 ### Participants
 
@@ -92,6 +88,7 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 | **SpacyTextProcessor** | Text cleaning, sentence splitting, POS analysis, and error post-processing (`nlp/spacy_processor.py`) |
 | **LanguageTool (REST API)** | Self-hosted grammar checker (`/v2/check`) |
 | **SpacyGrammarDetector** | OOV spell detection and noun capitalisation checking via spaCy (`nlp/services.py`) |
+| **AdvancedGermanGrammarDetector** | Optional bounded German grammar checks, enabled in Docker Compose |
 | **Database (PostgreSQL)** | Stores submissions and detected errors |
 
 ### Flow Description
@@ -108,17 +105,18 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 
 6. The student clicks the "Analyze" button on the submission detail page.
 7. The frontend sends `POST /api/nlp/submissions/{id}/analyze/`.
-8. The `AnalyzeView` validates ownership (`student == request.user`) and that the submission hasn't already been analyzed (`status == SUBMITTED`). It then updates the status to `ANALYZING`.
+8. The `AnalyzeView` validates ownership (`student == request.user`) and that the submission hasn't already been analyzed (`status == 'submitted'`). It then updates the status to `analyzing`.
 9. The view delegates to `ErrorDetectionService.analyze(submission)`.
 10. The `ErrorDetectionService` creates a spaCy `Doc` from the original submission text via `SpacyTextProcessor.make_doc()`, then runs its configured backends sequentially:
     - **LanguageToolClient**: sends `POST /v2/check` to the self-hosted LanguageTool instance. Optionally splits text into sentences using `SpacyTextProcessor.split_sentences()` and checks each sentence individually, remapping offsets back to the original text.
     - **SpacyGrammarDetector**: iterates over spaCy tokens to detect out-of-vocabulary (OOV) misspellings and missing noun capitalisation. Skips named entities (PER, LOC, ORG) and uppercase proper nouns. Generates correction suggestions via Levenshtein distance over the model's vector vocabulary.
+    - **AdvancedGermanGrammarDetector**: when enabled, adds bounded checks for subordinate-clause word order, feminine noun-phrase agreement, and `würde` + infinitive patterns.
 11. Both backends return lists of raw error dicts (offset, length, category, message, replacement).
 12. The `ErrorDetectionService` post-processes each error using `SpacyTextProcessor`:
     - **Category override**: `categorize_error()` uses POS/morphology tags to refine the category (e.g., DET→ARTICLE, ADP→PREPOSITION, VERB/AUX→VERB_TENSE).
     - **Context extraction**: `extract_error_context()` records surrounding POS tags, dependency relations, and named entities as JSON.
     - **POS tag**: `get_pos_tag()` records the spaCy POS tag at the error offset.
-13. The view deduplicates errors by character offset range and batch-creates `DetectedError` records (including `spacy_pos_tag` and `error_context` fields) in the database, then updates the submission status to `IN_REVIEW`.
+13. The view deduplicates errors by character offset range and batch-creates `DetectedError` records (including `spacy_pos_tag` and `error_context` fields) in the database, then updates the submission status to `in_review`.
 14. The view responds with `200 OK` containing the submission ID, error count, and new status.
 
 #### Phase 3: Fetch & Display Errors
@@ -126,8 +124,8 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 15. The frontend immediately fetches the detected errors via `GET /api/feedback/submissions/{id}/errors/`.
 16. The `SubmissionErrorsView` queries all `DetectedError` records for the submission. Pagination is **disabled** on this endpoint to allow the frontend to perform inline text highlighting.
 17. The database returns the error records.
-18. The frontend receives the full error list, each with `start_offset`, `end_offset`, `error_category`, and `severity`.
-19. The frontend renders the submission text with colour-coded inline highlights at the corresponding character offsets, grouped by error category.
+18. The frontend receives the full error list, including stored error metadata plus derived presentation fields such as `display_group`, `display_label`, `can_request_solution`, and `next_try_number`.
+19. The frontend renders the submission text with colour-coded inline highlights at the corresponding character offsets, grouped by `display_group` rather than the persistent `error_category` field.
 
 ### Implementation References
 
@@ -151,8 +149,7 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 - [`diagrams/my_idea_workflow_phase_1.drawio`](diagrams/my_idea_workflow_phase_1.drawio) — Phase 1 analysis and grouped highlights
 - [`diagrams/my_idea_workflow_phase_2.drawio`](diagrams/my_idea_workflow_phase_2.drawio) — Phase 2 second try and hint path
 - [`diagrams/my_idea_workflow_phase_3.drawio`](diagrams/my_idea_workflow_phase_3.drawio) — Phase 3 third try and answer reveal
-
-> **Note**: [`diagrams/sequence-correction.drawio`](diagrams/sequence-correction.drawio) is a legacy correction sequence artifact and no longer reflects the current phase-led workflow as closely as the three workflow diagrams above.
+- [`diagrams/sequence-correction.drawio`](diagrams/sequence-correction.drawio) — UML sequence view of the same stored-attempt workflow
 
 ### Participants
 
@@ -166,13 +163,13 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 
 ### Configuration Parameters
 
-The correction workflow is controlled by three parameters defined in `settings.MRGRAMMAR`:
+The correction workflow is controlled by two `settings.MRGRAMMAR` parameters plus one service constant:
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `SIMILARITY_THRESHOLD` | `0.85` | Levenshtein ratio at or above which an attempt is accepted as correct |
-| `HINT_THRESHOLD` | `1` | Attempt number at which a hint is revealed on failure |
-| `MAX_CORRECTION_ATTEMPTS` | `2` | Attempt number at which the solution is revealed and the error is auto-resolved |
+| `SIMILARITY_THRESHOLD` | `0.85` | `CorrectionWorkflowService` constant; Levenshtein ratio at or above which an attempt is accepted as correct |
+| `HINT_THRESHOLD` | `1` | `settings.MRGRAMMAR` value; attempt number at which a hint is revealed on failure |
+| `MAX_CORRECTION_ATTEMPTS` | `2` | `settings.MRGRAMMAR` value; attempt number at which the solution is revealed and the error is auto-resolved |
 
 ### Flow Description
 
@@ -187,6 +184,8 @@ The workflow now maps to the learner-facing second-try and third-try phases in t
 5. Since `attempt_number = 1` and the default configuration reveals hints on the first failed correction attempt, the response includes a hint and unlocks phase 3.
 6. The service creates a `CorrectionAttempt` record (`attempt_number=1`, `is_correct=false`, `hint_shown=true`).
 7. The response returns a phase-aware payload such as `{attempt_number: 1, display_attempt_number: 2, phase: "phase_2", outcome: "hint", is_correct: false, is_resolved: false, can_request_solution: true, hint: "..."}`.
+
+`attempt_number` is the stored backend attempt counter, while `display_attempt_number` is the learner-facing label used by the current frontend to render “second try” and “third try”.
 
 #### Phase 3: Third Try
 

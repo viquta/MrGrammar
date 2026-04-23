@@ -33,7 +33,7 @@
         </mxCell>
 
         <!-- ===== SCENARIO A: Attempt 1 — Incorrect, No Hint Yet ===== -->
-        <mxCell id="frag-a" value="Scenario A: Attempt 1 — Incorrect (below hint threshold)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-a" value="Scenario A: Stored Attempt 1 (learner-facing second try) — Incorrect, hint returned" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="130" width="1180" height="240" as="geometry" />
         </mxCell>
 
@@ -59,7 +59,7 @@
         </mxCell>
 
         <!-- Note: Levenshtein check -->
-        <mxCell id="note-lev" value="Levenshtein ratio('die', 'das')&#xa;= 0.33 &lt; 0.85 → INCORRECT&#xa;attempt_number = 1 &lt; HINT_THRESHOLD(1)&#xa;→ no hint yet" style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
+        <mxCell id="note-lev" value="Levenshtein ratio('die', 'das')&#xa;= 0.33 &lt; 0.85 → INCORRECT&#xa;attempt_number = 1 and HINT_THRESHOLD = 1&#xa;→ return hint, unlock manual reveal" style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
           <mxGeometry x="900" y="250" width="260" height="65" as="geometry" />
         </mxCell>
 
@@ -70,7 +70,7 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-a5" value="5: {attempt_number: 1,&#xa;    is_correct: false, is_resolved: false}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-a5" value="5: {attempt_number: 1, display_attempt_number: 2,&#xa;    phase: 'phase_2', outcome: 'hint',&#xa;    is_correct: false, is_resolved: false,&#xa;    can_request_solution: true, hint: '...'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="595" y="355" as="sourcePoint" />
             <mxPoint x="355" y="355" as="targetPoint" />
@@ -78,11 +78,11 @@
         </mxCell>
 
         <!-- ===== SCENARIO B: Attempt 2 — Incorrect, Hint Shown ===== -->
-        <mxCell id="frag-b" value="Scenario B: Attempt 2 — Incorrect (hint threshold reached, attempt ≥ HINT_THRESHOLD)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-b" value="Scenario B: Stored Attempt 2 (learner-facing third try) — Incorrect, solution revealed" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="390" width="1180" height="210" as="geometry" />
         </mxCell>
 
-        <mxCell id="msg-b1" value="6: Try again with 'dem'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-b1" value="6: Submit third try 'dem'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="135" y="430" as="sourcePoint" />
             <mxPoint x="355" y="430" as="targetPoint" />
@@ -103,11 +103,11 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="note-hint" value="Levenshtein ratio('dem', 'das')&#xa;= 0.33 &lt; 0.85 → INCORRECT&#xa;attempt_number = 2 ≥ HINT_THRESHOLD(1)&#xa;→ SHOW HINT" style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
+        <mxCell id="note-hint" value="Levenshtein ratio('dem', 'das')&#xa;= 0.33 &lt; 0.85 → INCORRECT&#xa;attempt_number = 2 ≥ MAX_CORRECTION_ATTEMPTS(2)&#xa;→ reveal hint + solution, mark resolved" style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
           <mxGeometry x="900" y="500" width="260" height="65" as="geometry" />
         </mxCell>
 
-        <mxCell id="msg-b4" value="9: {attempt_number: 2, is_correct: false,&#xa;    is_resolved: false,&#xa;    hint: 'The noun requires a definite neuter article.'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-b4" value="9: {attempt_number: 2, display_attempt_number: 3,&#xa;    phase: 'phase_3', outcome: 'solution_revealed',&#xa;    is_correct: false, is_resolved: true,&#xa;    can_request_solution: false, hint: '...', solution: 'das', explanation: '...'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="595" y="580" as="sourcePoint" />
             <mxPoint x="355" y="580" as="targetPoint" />
@@ -115,11 +115,11 @@
         </mxCell>
 
         <!-- ===== SCENARIO C: Attempt 3 — Correct ===== -->
-        <mxCell id="frag-c" value="Scenario C: Attempt 3 — Correct (Levenshtein ≥ 0.85)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-c" value="Scenario C: Stored Attempt 2 (learner-facing third try) — Correct" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="620" width="1180" height="210" as="geometry" />
         </mxCell>
 
-        <mxCell id="msg-c1" value="10: Submit 'das'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-c1" value="10: Submit third try 'das'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="135" y="660" as="sourcePoint" />
             <mxPoint x="355" y="660" as="targetPoint" />
@@ -144,14 +144,14 @@
           <mxGeometry x="900" y="730" width="260" height="50" as="geometry" />
         </mxCell>
 
-        <mxCell id="msg-c4" value="13: UPDATE detected_error SET is_resolved=true&#xa;INSERT correction_attempt (is_correct=true)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-c4" value="13: UPDATE detected_error SET is_resolved=true,&#xa;resolution_method='correct', resolved_at=now()&#xa;INSERT correction_attempt (attempt_number=2, is_correct=true)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="855" y="790" as="sourcePoint" />
             <mxPoint x="1120" y="790" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-c5" value="14: {attempt_number: 3,&#xa;    is_correct: true, is_resolved: true}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-c5" value="14: {attempt_number: 2, display_attempt_number: 3,&#xa;    phase: 'phase_3', outcome: 'correct',&#xa;    is_correct: true, is_resolved: true,&#xa;    can_request_solution: false}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="595" y="815" as="sourcePoint" />
             <mxPoint x="355" y="815" as="targetPoint" />
@@ -159,15 +159,15 @@
         </mxCell>
 
         <!-- ===== SCENARIO D: Max Attempts Reached ===== -->
-        <mxCell id="frag-d" value="Scenario D: Max Attempts — Solution Revealed (attempt ≥ MAX_CORRECTION_ATTEMPTS)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-d" value="Scenario D: Manual reveal after first failed stored attempt" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="850" width="1180" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="note-max" value="If student fails all 3 attempts,&#xa;the service returns both hint AND solution&#xa;and auto-resolves the error." style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
+        <mxCell id="note-max" value="After one failed stored attempt, the learner may skip typing&#xa;the third try and use the gated manual reveal endpoint.&#xa;That path resolves the error without creating another attempt row." style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
           <mxGeometry x="100" y="890" width="240" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="msg-d1" value="15: {attempt_number: 3, is_correct: false,&#xa;    is_resolved: true,&#xa;    hint: '...', solution: 'das'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-d1" value="15: can_request_solution(error) → true&#xa;because attempts.count() = 1 and HINT_THRESHOLD = 1" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="595" y="985" as="sourcePoint" />
             <mxPoint x="355" y="985" as="targetPoint" />
@@ -175,11 +175,11 @@
         </mxCell>
 
         <!-- ===== ALT: Request Solution Directly ===== -->
-        <mxCell id="frag-alt" value="alt  [Student requests solution directly]" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-alt" value="alt  [Student requests manual reveal]" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="40" y="1050" width="1180" height="190" as="geometry" />
         </mxCell>
 
-        <mxCell id="msg-e1" value="16: Click 'Show Solution'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-e1" value="16: Click 'Reveal answer'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="135" y="1100" as="sourcePoint" />
             <mxPoint x="355" y="1100" as="targetPoint" />
@@ -193,14 +193,14 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-e3" value="18: UPDATE detected_error SET is_resolved=true" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-e3" value="18: UPDATE detected_error SET is_resolved=true,&#xa;resolution_method='manual_reveal', resolved_at=now()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="595" y="1165" as="sourcePoint" />
             <mxPoint x="1120" y="1165" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-e4" value="19: {hint: '...', solution: 'das'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-e4" value="19: {attempt_number: 1, display_attempt_number: 2,&#xa;    phase: 'phase_3', outcome: 'manual_reveal',&#xa;    is_correct: false, is_resolved: true,&#xa;    can_request_solution: false, hint: '...', solution: 'das', explanation: '...'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="595" y="1200" as="sourcePoint" />
             <mxPoint x="355" y="1200" as="targetPoint" />
@@ -208,7 +208,7 @@
         </mxCell>
 
         <!-- ===== CONFIG BOX ===== -->
-        <mxCell id="config-box" value="&lt;b&gt;Workflow Configuration&lt;/b&gt;&lt;br&gt;&lt;br&gt;SIMILARITY_THRESHOLD = 0.85&lt;br&gt;HINT_THRESHOLD = 1&lt;br&gt;MAX_CORRECTION_ATTEMPTS = 3" style="shape=note;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;size=18;" vertex="1" parent="1">
+        <mxCell id="config-box" value="&lt;b&gt;Workflow Configuration&lt;/b&gt;&lt;br&gt;&lt;br&gt;SIMILARITY_THRESHOLD = 0.85&lt;br&gt;HINT_THRESHOLD = 1&lt;br&gt;MAX_CORRECTION_ATTEMPTS = 2" style="shape=note;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;size=18;" vertex="1" parent="1">
           <mxGeometry x="1280" y="130" width="240" height="100" as="geometry" />
         </mxCell>
 

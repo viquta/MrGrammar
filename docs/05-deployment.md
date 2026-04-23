@@ -3,8 +3,6 @@
 This document describes the deployment architecture, Docker Compose configuration, and infrastructure setup of MrGrammar.
 
 > **UML Diagram**: Open [`diagrams/component-deployment.drawio`](diagrams/component-deployment.drawio) in the Draw.io VS Code extension or at [diagrams.net](https://app.diagrams.net) to view the Component & Deployment diagram.
->
-> ![Component & Deployment Diagram](diagrams/exported/component-deployment.png)
 
 ---
 
@@ -117,6 +115,7 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | `LANGUAGETOOL_URL` | `http://languagetool:8010/v2` | LanguageTool API base URL |
 | `SPACY_MODEL` | `de_core_news_md` | spaCy model name loaded by `SpacyTextProcessor` |
 | `SPACY_SENTENCE_SPLIT` | `True` | Whether to use spaCy sentence splitting for per-sentence LanguageTool analysis |
+| `ENABLE_ADVANCED_GERMAN_CHECKS` | `True` in `docker-compose.yml` | Enable the bounded advanced German detector in addition to LanguageTool and spaCy |
 | `ENABLE_LLM_EXPLANATIONS` | `True` | Enable final-answer explanation generation |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | Ollama API base URL for explanation generation when the backend runs in Docker |
 | `OLLAMA_MODEL` | `gemma4:26b` | Ollama model name used for explanations |

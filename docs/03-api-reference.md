@@ -221,7 +221,7 @@ List classrooms accessible to the authenticated user.
       "id": 1,
       "name": "Deutsch B2 – Gruppe A",
       "language": "de",
-      "created_by": 3,
+      "created_by": "Ada Lehrer (teacher)",
       "created_at": "2026-03-15T10:30:00Z",
       "student_count": 24
     }
@@ -233,7 +233,7 @@ List classrooms accessible to the authenticated user.
 
 ### POST `/api/classrooms/`
 
-Create a new classroom. The authenticated user is automatically added as a `TEACHER` member.
+Create a new classroom. The authenticated user is automatically added as a `teacher` member.
 
 **Permissions**: `IsAuthenticated`
 
@@ -251,7 +251,7 @@ Create a new classroom. The authenticated user is automatically added as a `TEAC
   "id": 2,
   "name": "Deutsch A2 – Konversation",
   "language": "de",
-  "created_by": 3,
+  "created_by": "Ada Lehrer (teacher)",
   "created_at": "2026-04-01T14:00:00Z",
   "student_count": 0
 }
@@ -312,7 +312,7 @@ List all members of a classroom.
     "id": 1,
     "user": 5,
     "classroom": 1,
-    "role": "STUDENT",
+    "role": "student",
     "username": "maria.mueller",
     "full_name": "Maria Müller",
     "joined_at": "2026-03-16T09:00:00Z"
@@ -333,7 +333,7 @@ Add a user to a classroom.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `user_id` | integer | yes | ID of the user to add |
-| `role` | string | yes | `STUDENT` \| `TEACHER` |
+| `role` | string | yes | `student` \| `teacher` |
 
 **Response** `201 Created`:
 
@@ -342,7 +342,7 @@ Add a user to a classroom.
   "id": 12,
   "user": 5,
   "classroom": 1,
-  "role": "STUDENT",
+  "role": "student",
   "username": "maria.mueller",
   "full_name": "Maria Müller",
   "joined_at": "2026-04-19T10:00:00Z"
@@ -365,7 +365,7 @@ Add a user to a classroom.
 
 List text submissions accessible to the authenticated user.
 
-**Permissions**: `IsAuthenticated`
+**Permissions**: `IsAuthenticated` (restricted to errors on submissions owned by the current student)
 
 **Behaviour by role**:
 - **Student**: Own submissions only.
@@ -402,7 +402,7 @@ List text submissions accessible to the authenticated user.
 
 Create a new text submission. The `student` field is automatically set to the authenticated user.
 
-**Permissions**: `IsAuthenticated`
+**Permissions**: `IsAuthenticated` (restricted to errors on submissions owned by the current student)
 
 **Request Body**:
 
@@ -503,7 +503,23 @@ Retrieve a single error with all associated correction attempts.
   "end_offset": 48,
   "original_text": "der",
   "is_resolved": false,
-  "attempt_count": 1,
+  "spacy_pos_tag": "DET",
+  "error_context": {
+    "tokens": [
+      {
+        "text": "der",
+        "pos": "DET",
+        "morph": {"Case": "Dat", "Definite": "Def", "Gender": "Fem", "Number": "Sing"},
+        "dep": "nk",
+        "head": "Schule"
+      }
+    ],
+    "entities": [],
+    "prev_token": {"text": "sehe", "pos": "VERB"},
+    "next_token": {"text": "Schule", "pos": "NOUN"}
+  },
+  "display_group": "noun_phrase",
+  "display_label": "Noun Phrase",
   "created_at": "2026-04-19T10:05:00Z",
   "attempts": [
     {
@@ -588,13 +604,13 @@ The response varies based on the attempt outcome:
 | `400` | Error is already resolved |
 | `404` | Error does not exist |
 
-**Workflow Configuration** (from `settings.MRGRAMMAR`):
+**Workflow Configuration**:
 
 | Parameter | Default | Effect |
 |-----------|---------|--------|
-| `SIMILARITY_THRESHOLD` | `0.85` | Levenshtein ratio ≥ this value → attempt accepted as correct |
-| `HINT_THRESHOLD` | `1` | Attempt number at which hint is revealed on failure |
-| `MAX_CORRECTION_ATTEMPTS` | `2` | Attempt number at which solution is revealed and error auto-resolved |
+| `SIMILARITY_THRESHOLD` | `0.85` | Service constant on `CorrectionWorkflowService`; Levenshtein ratio ≥ this value → attempt accepted as correct |
+| `HINT_THRESHOLD` | `1` | `settings.MRGRAMMAR` value; attempt number at which hint is revealed on failure |
+| `MAX_CORRECTION_ATTEMPTS` | `2` | `settings.MRGRAMMAR` value; attempt number at which solution is revealed and error auto-resolved |
 
 ---
 
@@ -602,7 +618,7 @@ The response varies based on the attempt outcome:
 
 Reveal the hint, answer, and final explanation for an error once manual reveal has been unlocked. The current backend unlocks this only after the first failed correction attempt.
 
-**Permissions**: `IsAuthenticated`
+**Permissions**: `IsAuthenticated` (restricted to errors on submissions owned by the current student)
 
 **Request Body**:
 
@@ -641,7 +657,7 @@ Reveal the hint, answer, and final explanation for an error once manual reveal h
 
 ### POST `/api/nlp/submissions/{id}/analyze/`
 
-Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool instance, maps detected matches to `DetectedError` records, and transitions the submission status from `SUBMITTED` → `ANALYZING` → `IN_REVIEW`.
+Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool instance, maps detected matches to `DetectedError` records, and transitions the submission status from `submitted` → `analyzing` → `in_review`.
 
 **Permissions**: `IsAuthenticated` (must be the submission's `student`)
 
@@ -661,14 +677,14 @@ Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool 
 
 | Status | Condition |
 |--------|-----------|
-| `400` | Submission has already been analyzed (status ≠ `SUBMITTED`) |
+| `400` | Submission has already been analyzed (status ≠ `submitted`) |
 | `403` | Requester is not the submission's student |
 | `404` | Submission does not exist |
 
 **Backend Pipeline**:
 
 1. Validate submission ownership and status
-2. Set status to `ANALYZING`
+2. Set status to `analyzing`
 3. Create a spaCy `Doc` from the original submission text (using `SpacyTextProcessor.make_doc()`)
 4. Run **two** error-detection backends in sequence:
    - **LanguageToolClient** — sends `POST /v2/check` to the self-hosted LanguageTool instance (optionally per-sentence via `detect_by_sentences()` using spaCy sentence splitting)
@@ -677,7 +693,7 @@ Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool 
 6. Post-process each error with spaCy: override category using POS tags (`categorize_error()`), extract linguistic context (`extract_error_context()`), and record the POS tag (`get_pos_tag()`)
 7. Deduplicate by character offset range
 8. Batch-create `DetectedError` records (including `spacy_pos_tag` and `error_context` fields)
-9. Set status to `IN_REVIEW`
+9. Set status to `in_review`
 10. Return error count
 
 ---

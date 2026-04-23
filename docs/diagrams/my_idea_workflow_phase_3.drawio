@@ -21,7 +21,7 @@
                 <mxCell id="12" value="Correction Workflow phase 3" style="swimlane;" parent="1" vertex="1">
                     <mxGeometry x="230" y="530" width="470" height="410" as="geometry"/>
                 </mxCell>
-                <mxCell id="14" value="German local LLM compares solution&amp;nbsp;&lt;div&gt;to student&#39;s solution, and gives&amp;nbsp;&lt;/div&gt;&lt;div&gt;answer with a short explanation&lt;/div&gt;" style="shape=ext;double=1;whiteSpace=wrap;html=1;aspect=fixed;" parent="12" vertex="1">
+                <mxCell id="14" value="Backend reveals the stored answer and asks the local LLM for a short explanation of the mistake" style="shape=ext;double=1;whiteSpace=wrap;html=1;aspect=fixed;" parent="12" vertex="1">
                     <mxGeometry x="290" y="70" width="150" height="150" as="geometry"/>
                 </mxCell>
                 <object placeholders="1" c4Name="postgres" c4Type="Container" c4Technology="" c4Description="collects errors from student" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%:&amp;nbsp;%c4Technology%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#E6E6E6&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="17">
@@ -34,7 +34,7 @@
                         <mxPoint x="180" y="240" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="37" value="saves student 3rd try error (and go to phase 3)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="16" vertex="1" connectable="0">
+                <mxCell id="37" value="stores the final resolution metadata for the error" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="16" vertex="1" connectable="0">
                     <mxGeometry x="0.2611" y="2" relative="1" as="geometry">
                         <mxPoint x="1" as="offset"/>
                     </mxGeometry>
@@ -55,10 +55,10 @@
                         <mxPoint x="650" y="160" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="19" value="recieves input that their second try was wrong + LLM hint" style="shape=ext;double=1;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+                <mxCell id="19" value="receives the phase 3 state after the failed second try, including a hint and optional reveal access" style="shape=ext;double=1;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
                     <mxGeometry x="350" y="60" width="170" height="170" as="geometry"/>
                 </mxCell>
-                <mxCell id="24" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 11px; text-wrap-mode: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;writes anohter try on the new&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 11px; text-wrap-mode: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;text box&lt;/span&gt;&lt;/div&gt;" style="shape=ext;double=1;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
+                <mxCell id="24" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 11px; text-wrap-mode: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;types the third try or uses the&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(0, 0, 0); font-size: 11px; text-wrap-mode: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Reveal answer action&lt;/span&gt;&lt;/div&gt;" style="shape=ext;double=1;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
                     <mxGeometry x="640" y="90" width="150" height="150" as="geometry"/>
                 </mxCell>
                 <mxCell id="27" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.753;entryY=0.256;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="24" target="29" edge="1">
@@ -71,7 +71,7 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="30" value="Gives positive feedback and shows that yes, their solution is indeed the same as the system&#39;s solution, and shows both answers" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="30" value="Gives positive feedback and marks the error as resolved on the third try" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="220" y="310" width="150" height="100" as="geometry"/>
                 </mxCell>
                 <mxCell id="31" value="" style="edgeStyle=none;html=1;" parent="1" source="29" target="30" edge="1">
@@ -89,7 +89,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="34" value="Puts data that student got it right on the third try" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="33" vertex="1" connectable="0">
+                <mxCell id="34" value="Stores that the learner resolved the error on the third try" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="33" vertex="1" connectable="0">
                     <mxGeometry x="-0.2591" y="-4" relative="1" as="geometry">
                         <mxPoint x="-1" as="offset"/>
                     </mxGeometry>

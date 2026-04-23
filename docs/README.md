@@ -24,24 +24,16 @@ All diagrams are in Draw.io XML format (`.drawio`). Open them with:
 
 | Diagram | File | Type |
 |---------|------|------|
-| Class Diagram | [diagrams/class-diagram.drawio](diagrams/class-diagram.drawio) | UML Class Diagram — 7 models, 5 enumerations, associations with cardinality |
-| Auth Sequence | [diagrams/sequence-auth.drawio](diagrams/sequence-auth.drawio) | UML Sequence — Registration → Login → JWT lifecycle |
+| Class Diagram | [diagrams/class-diagram.drawio](diagrams/class-diagram.drawio) | UML Class Diagram — 7 models, 6 enumerations, associations with cardinality |
+| Auth Sequence | [diagrams/sequence-auth.drawio](diagrams/sequence-auth.drawio) | UML Sequence — Registration → Login → JWT lifecycle and backend refresh support |
 | Submission Sequence | [diagrams/sequence-submission.drawio](diagrams/sequence-submission.drawio) | UML Sequence — Submit text → NLP analysis → Error display |
-| Correction Sequence | [diagrams/sequence-correction.drawio](diagrams/sequence-correction.drawio) | Legacy UML Sequence — older correction flow kept for reference until redrawn |
+| Correction Sequence | [diagrams/sequence-correction.drawio](diagrams/sequence-correction.drawio) | UML Sequence — stored attempts, phase labels, solution reveal, and manual reveal |
 | Workflow Phase 1 Concept | [diagrams/my_idea_workflow_phase_1.drawio](diagrams/my_idea_workflow_phase_1.drawio) | Product workflow concept — analyze text and render grouped highlights |
 | Workflow Phase 2 Concept | [diagrams/my_idea_workflow_phase_2.drawio](diagrams/my_idea_workflow_phase_2.drawio) | Product workflow concept — second try, correctness check, and hint path |
 | Workflow Phase 3 Concept | [diagrams/my_idea_workflow_phase_3.drawio](diagrams/my_idea_workflow_phase_3.drawio) | Product workflow concept — third try, answer reveal, and short explanation |
 | Component & Deployment | [diagrams/component-deployment.drawio](diagrams/component-deployment.drawio) | UML Component + Deployment — Docker containers, components, interfaces |
 
-### Exporting Diagrams to PNG
-
-To embed diagrams in documents or presentations, export each `.drawio` file to PNG:
-
-1. Open the `.drawio` file in Draw.io (VS Code or browser)
-2. **File → Export as → PNG** (or use `Ctrl+Shift+E`)
-3. Save to `diagrams/exported/` with the same base name (e.g., `class-diagram.png`)
-
-The Markdown documents reference these exported PNGs at their expected paths in `diagrams/exported/`.
+The `.drawio` files are the canonical diagram artifacts in this repository. Older PNG exports are not tracked and should not be treated as the source of truth.
 
 ---
 
@@ -71,7 +63,6 @@ MrGrammar/
 ├── frontend/          # SvelteKit SPA (Svelte 5, Tailwind 4, TypeScript 6)
 ├── docs/              # This documentation
 │   ├── diagrams/      # Draw.io UML diagrams
-│   └── diagrams/exported/  # PNG exports of diagrams
 ├── docker-compose.yml # Multi-container orchestration
 ├── Dockerfile.backend # Backend container build
 ├── requirements.txt   # Python dependencies
