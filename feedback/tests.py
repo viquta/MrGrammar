@@ -5,6 +5,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
+from analytics.models import LearnerErrorSummary
 from classrooms.models import Classroom
 from feedback.models import CorrectionAttempt, DetectedError
 from feedback.services import CorrectionWorkflowService
@@ -96,6 +97,18 @@ class CorrectionWorkflowServiceTests(TestCase):
 		self.assertEqual(result['outcome'], 'correct')
 		self.error.refresh_from_db()
 		self.assertTrue(self.error.is_resolved)
+		self.assertEqual(
+			self.error.resolution_method,
+			DetectedError.ResolutionMethod.CORRECT,
+		)
+		self.assertIsNotNone(self.error.resolved_at)
+		summary = LearnerErrorSummary.objects.get(
+			student=self.student,
+			submission=self.submission,
+			error_category=DetectedError.Category.ARTICLE,
+		)
+		self.assertEqual(summary.total_errors, 1)
+		self.assertEqual(summary.first_attempt_successes, 1)
 
 	@patch('feedback.services.ExplanationGenerationService.generate', return_value='The article must agree with the noun.')
 	def test_manual_reveal_returns_phase_three_payload(self, _mock_generate):
@@ -107,6 +120,35 @@ class CorrectionWorkflowServiceTests(TestCase):
 		self.assertEqual(result['outcome'], 'manual_reveal')
 		self.assertEqual(result['solution'], self.error.correct_solution)
 		self.assertIn('explanation', result)
+		self.error.refresh_from_db()
+		self.assertTrue(self.error.is_resolved)
+		self.assertEqual(
+			self.error.resolution_method,
+			DetectedError.ResolutionMethod.MANUAL_REVEAL,
+		)
+		self.assertIsNotNone(self.error.resolved_at)
+		summary = LearnerErrorSummary.objects.get(
+			student=self.student,
+			submission=self.submission,
+			error_category=DetectedError.Category.ARTICLE,
+		)
+		self.assertEqual(summary.total_errors, 1)
+		self.assertEqual(summary.first_attempt_successes, 0)
+		self.assertEqual(summary.avg_hints_used, 1.0)
+
+	@patch('feedback.services.ExplanationGenerationService.generate', return_value='Use the feminine article with this noun.')
+	def test_second_failed_attempt_persists_solution_revealed_method(self, _mock_generate):
+		self.service.submit_attempt(self.error, self.student, 'Das')
+
+		self.service.submit_attempt(self.error, self.student, 'Dem')
+
+		self.error.refresh_from_db()
+		self.assertTrue(self.error.is_resolved)
+		self.assertEqual(
+			self.error.resolution_method,
+			DetectedError.ResolutionMethod.SOLUTION_REVEALED,
+		)
+		self.assertIsNotNone(self.error.resolved_at)
 
 
 @override_settings(MRGRAMMAR=MRGRAMMAR_TEST_SETTINGS)

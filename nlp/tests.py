@@ -6,6 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
+from analytics.models import LearnerErrorSummary
 from classrooms.models import Classroom
 from feedback.models import DetectedError
 from submissions.models import TextSubmission
@@ -80,6 +81,48 @@ class AnalyzeSubmissionViewTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.submission.status, TextSubmission.Status.IN_REVIEW)
         self.assertEqual(DetectedError.objects.filter(submission=self.submission).count(), 1)
+
+    @patch('nlp.services.SpacyGrammarDetector.detect', return_value=[])
+    @patch('nlp.services.SpacyTextProcessor')
+    @patch(
+        'nlp.services.LanguageToolClient.detect_by_sentences',
+        return_value=[
+            {
+                'start_offset': 0,
+                'end_offset': 3,
+                'error_category': DetectedError.Category.ARTICLE,
+                'original_text': 'Der',
+                'hint_text': 'Check the article.',
+                'correct_solution': 'Die',
+            }
+        ],
+    )
+    def test_analyze_creates_initial_learner_summary(
+        self,
+        _mock_detect_by_sentences,
+        MockProcessor,
+        _mock_spacy_detect,
+    ):
+        processor_instance = MockProcessor.return_value
+        processor_instance.make_doc.return_value = MagicMock()
+        processor_instance.split_sentences.return_value = []
+        processor_instance.categorize_error.return_value = DetectedError.Category.ARTICLE
+        processor_instance.extract_error_context.return_value = {}
+        processor_instance.get_pos_tag.return_value = 'DET'
+
+        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
+
+        response = self.client.post(url, data={}, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        summary = LearnerErrorSummary.objects.get(
+            student=self.student,
+            submission=self.submission,
+            error_category=DetectedError.Category.ARTICLE,
+        )
+        self.assertEqual(summary.total_errors, 1)
+        self.assertEqual(summary.first_attempt_successes, 0)
+        self.assertEqual(summary.avg_hints_used, 0.0)
 
 
 # ── SpacyTextProcessor tests ──

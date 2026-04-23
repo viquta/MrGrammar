@@ -1,6 +1,8 @@
 from django.conf import settings
+from django.utils import timezone
 from Levenshtein import ratio as levenshtein_ratio
 
+from analytics.services import AnalyticsService
 from .explanations import ExplanationGenerationService
 from .models import DetectedError, CorrectionAttempt
 
@@ -56,11 +58,11 @@ class CorrectionWorkflowService:
         )
 
         if is_correct:
-            error.is_resolved = True
+            self._mark_resolved(error, DetectedError.ResolutionMethod.CORRECT)
         elif show_solution:
-            error.is_resolved = True
-        if is_correct or show_solution:
-            error.save(update_fields=['is_resolved'])
+            self._mark_resolved(error, DetectedError.ResolutionMethod.SOLUTION_REVEALED)
+
+        AnalyticsService.compute_summary_for_submission(error.submission)
 
         result = {
             'attempt_number': attempt_number,
@@ -84,6 +86,9 @@ class CorrectionWorkflowService:
         return result
 
     def request_solution(self, error: DetectedError, attempted_text: str = '') -> dict:
+        self._mark_resolved(error, DetectedError.ResolutionMethod.MANUAL_REVEAL)
+        AnalyticsService.compute_summary_for_submission(error.submission)
+
         return {
             'attempt_number': error.attempts.count(),
             'display_attempt_number': error.attempts.count() + 1,
@@ -111,6 +116,12 @@ class CorrectionWorkflowService:
         if show_hint:
             return 'hint'
         return 'retry'
+
+    def _mark_resolved(self, error: DetectedError, method: str) -> None:
+        error.is_resolved = True
+        error.resolution_method = method
+        error.resolved_at = timezone.now()
+        error.save(update_fields=['is_resolved', 'resolution_method', 'resolved_at'])
 
     def _check_correctness(self, attempted: str, correct: str) -> bool:
         attempted_norm = attempted.strip().lower()

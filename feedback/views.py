@@ -91,7 +91,4 @@ class RequestSolutionView(APIView):
             attempted_text=serializer.validated_data.get('attempted_text', ''),
         )
 
-        error.is_resolved = True
-        error.save(update_fields=['is_resolved'])
-
         return Response(result, status=status.HTTP_200_OK)

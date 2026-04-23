@@ -1,5 +1,10 @@
 # MrGrammar
 
+NOTE use docker exec instead of running tests outside it: targeted suites successfully inside the backend container with:
+
+
+ docker exec mrgrammar-backend-1 python manage.py test feedback.tests analytics.tests nlp.tests.AnalyzeSubmissionViewTests --noinput -v 2
+
 > **Public beta — still under active development.**  
 > Version 0.0.5 does not yet have a production-quality NLP pipeline. Expect rough edges.
 

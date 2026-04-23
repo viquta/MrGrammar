@@ -686,31 +686,90 @@ Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool 
 
 ### GET `/api/analytics/student/{id}/progress/`
 
-Retrieve error-category trends for a student across their submissions.
+Retrieve a dashboard-ready learner insight payload for a student across their submissions.
 
 **Permissions**: `IsAuthenticated`
 - Students can only view their own progress (ID must match `request.user.id`)
-- Teachers and admins can view any student
+- Teachers can view students who belong to one of their classrooms
+- Admins can view any student
 
 **Response** `200 OK`:
 
 ```json
-[
-  {
-    "error_category": "article",
-    "total_errors": 12,
-    "first_attempt_successes": 7,
-    "avg_hints_used": 0.8,
-    "submission_date": "2026-04-18"
+{
+  "student": {
+    "id": 12,
+    "username": "maria.mueller",
+    "full_name": "Maria Müller"
   },
-  {
-    "error_category": "grammar",
-    "total_errors": 5,
-    "first_attempt_successes": 3,
-    "avg_hints_used": 1.2,
-    "submission_date": "2026-04-18"
-  }
-]
+  "overview": {
+    "submission_count": 4,
+    "total_errors": 19,
+    "resolved_errors": 15,
+    "resolution_rate": 0.79,
+    "first_attempt_successes": 8,
+    "first_attempt_success_rate": 0.42,
+    "hint_shown_errors": 7,
+    "hint_usage_rate": 0.37,
+    "manual_reveal_count": 2,
+    "solution_reveal_count": 1,
+    "avg_attempts_per_error": 1.32,
+    "last_submission_at": "2026-04-21T10:15:00Z"
+  },
+  "submissions": [
+    {
+      "submission_id": 44,
+      "title": "Mein Wochenende",
+      "status": "completed",
+      "submitted_at": "2026-04-18T09:30:00Z",
+      "total_errors": 6,
+      "resolved_errors": 5,
+      "first_attempt_successes": 3,
+      "hint_shown_errors": 2,
+      "manual_reveal_count": 1,
+      "solution_reveal_count": 0,
+      "attempt_count": 7,
+      "categories": [
+        {
+          "error_category": "article",
+          "total_errors": 3,
+          "resolved_errors": 3,
+          "first_attempt_successes": 2,
+          "avg_hints_used": 0.33,
+          "hint_shown_errors": 1,
+          "manual_reveal_count": 0,
+          "attempt_count": 3
+        }
+      ]
+    }
+  ],
+  "category_breakdown": [
+    {
+      "error_category": "article",
+      "total_errors": 7,
+      "resolved_errors": 6,
+      "first_attempt_successes": 4,
+      "first_attempt_success_rate": 0.57,
+      "avg_hints_used": 0.29,
+      "hint_shown_errors": 2,
+      "manual_reveal_count": 1,
+      "avg_attempts_per_error": 1.14,
+      "timeline": [
+        {
+          "submission_id": 44,
+          "submission_title": "Mein Wochenende",
+          "submitted_at": "2026-04-18T09:30:00Z",
+          "total_errors": 3,
+          "resolved_errors": 3,
+          "first_attempt_successes": 2,
+          "avg_hints_used": 0.33,
+          "hint_shown_errors": 1,
+          "manual_reveal_count": 0
+        }
+      ]
+    }
+  ]
+}
 ```
 
 **Error Responses**:
@@ -718,37 +777,107 @@ Retrieve error-category trends for a student across their submissions.
 | Status | Condition |
 |--------|-----------|
 | `403` | Student attempting to view another student's progress |
+| `403` | Teacher attempting to view a student outside their classrooms |
 
 ---
 
 ### GET `/api/analytics/classroom/{id}/patterns/`
 
-Retrieve aggregated error patterns across all submissions in a classroom.
+Retrieve a dashboard-ready classroom insight payload across all submissions in a classroom.
 
 **Permissions**: `IsTeacherOrAdmin`
 
 **Response** `200 OK`:
 
 ```json
-[
-  {
-    "error_category": "article",
-    "total_count": 87,
-    "resolved_count": 62
+{
+  "classroom": {
+    "id": 3,
+    "name": "Deutsch B2 – Gruppe A",
+    "language": "de"
   },
-  {
-    "error_category": "spelling",
-    "total_count": 45,
-    "resolved_count": 41
-  }
-]
+  "overview": {
+    "student_count": 24,
+    "submission_count": 31,
+    "total_errors": 132,
+    "resolved_errors": 104,
+    "resolution_rate": 0.79,
+    "first_attempt_successes": 54,
+    "first_attempt_success_rate": 0.41,
+    "hint_shown_errors": 38,
+    "hint_usage_rate": 0.29,
+    "manual_reveal_count": 11,
+    "solution_reveal_count": 9,
+    "avg_attempts_per_error": 1.47
+  },
+  "timeline": [
+    {
+      "submission_id": 44,
+      "submission_title": "Mein Wochenende",
+      "submitted_at": "2026-04-18T09:30:00Z",
+      "student_id": 12,
+      "student_name": "Maria Müller",
+      "total_errors": 6,
+      "resolved_errors": 5,
+      "first_attempt_successes": 3,
+      "hint_shown_errors": 2,
+      "manual_reveal_count": 1
+    }
+  ],
+  "category_breakdown": [
+    {
+      "error_category": "article",
+      "total_errors": 42,
+      "resolved_errors": 33,
+      "resolution_rate": 0.79,
+      "first_attempt_successes": 19,
+      "first_attempt_success_rate": 0.45,
+      "hint_shown_errors": 14,
+      "hint_usage_rate": 0.33,
+      "manual_reveal_count": 5,
+      "avg_attempts_per_error": 1.36,
+      "timeline": [
+        {
+          "submission_id": 44,
+          "submission_title": "Mein Wochenende",
+          "submitted_at": "2026-04-18T09:30:00Z",
+          "student_id": 12,
+          "student_name": "Maria Müller",
+          "total_errors": 3,
+          "resolved_errors": 3,
+          "first_attempt_successes": 2,
+          "hint_shown_errors": 1,
+          "manual_reveal_count": 0
+        }
+      ]
+    }
+  ],
+  "students": [
+    {
+      "student_id": 12,
+      "username": "maria.mueller",
+      "full_name": "Maria Müller",
+      "submission_count": 4,
+      "total_errors": 19,
+      "resolved_errors": 15,
+      "resolution_rate": 0.79,
+      "first_attempt_successes": 8,
+      "first_attempt_success_rate": 0.42,
+      "hint_shown_errors": 7,
+      "hint_usage_rate": 0.37,
+      "manual_reveal_count": 2,
+      "avg_attempts_per_error": 1.32,
+      "top_error_category": "article",
+      "last_submission_at": "2026-04-21T10:15:00Z"
+    }
+  ]
+}
 ```
-
-Results are ordered by `total_count` descending, showing the most common error categories first.
 
 **Error Responses**:
 
 | Status | Condition |
 |--------|-----------|
 | `403` | User is not a teacher or admin |
+| `403` | Teacher is not a member of the classroom |
 | `404` | Classroom does not exist |

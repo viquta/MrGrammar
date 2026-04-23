@@ -1,6 +1,7 @@
 {
 	"/": [],
 	"/login": [],
+	"/progress": [],
 	"/register": [],
 	"/submissions": [],
 	"/submissions/[id]": []

@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from analytics.services import AnalyticsService
 from submissions.models import TextSubmission
 from .services import ErrorDetectionService
 
@@ -50,6 +51,7 @@ class AnalyzeSubmissionView(APIView):
 
         submission.status = TextSubmission.Status.IN_REVIEW
         submission.save(update_fields=['status'])
+        AnalyticsService.compute_summary_for_submission(submission)
 
         return Response(
             {

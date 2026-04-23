@@ -17,6 +17,11 @@ class DetectedError(models.Model):
         MEDIUM = 'medium', 'Medium'
         HIGH = 'high', 'High'
 
+    class ResolutionMethod(models.TextChoices):
+        CORRECT = 'correct', 'Corrected by student'
+        SOLUTION_REVEALED = 'solution_revealed', 'Revealed after max attempts'
+        MANUAL_REVEAL = 'manual_reveal', 'Manually revealed by student'
+
     submission = models.ForeignKey(
         'submissions.TextSubmission',
         on_delete=models.CASCADE,
@@ -35,6 +40,8 @@ class DetectedError(models.Model):
     spacy_pos_tag = models.CharField(max_length=20, blank=True)
     error_context = models.JSONField(default=dict, blank=True)
     is_resolved = models.BooleanField(default=False)
+    resolution_method = models.CharField(max_length=20, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

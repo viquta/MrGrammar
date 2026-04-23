@@ -1,5 +1,7 @@
 const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
+import type { ClassroomAnalyticsResponse, StudentAnalyticsResponse } from '$lib/types';
+
 interface RequestOptions {
 	method?: string;
 	body?: unknown;
@@ -58,6 +60,14 @@ export const api = {
 
 	delete: <T>(endpoint: string, token?: string | null) =>
 		request<T>(endpoint, { method: 'DELETE', token }),
+};
+
+export const analyticsApi = {
+	getStudentProgress: (studentId: number, token?: string | null) =>
+		api.get<StudentAnalyticsResponse>(`/analytics/student/${studentId}/progress/`, token),
+
+	getClassroomPatterns: (classroomId: number, token?: string | null) =>
+		api.get<ClassroomAnalyticsResponse>(`/analytics/classroom/${classroomId}/patterns/`, token),
 };
 
 export { ApiError };
