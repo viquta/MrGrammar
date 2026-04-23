@@ -207,6 +207,28 @@ class SpacyTextProcessorCategorizeTest(TestCase):
         )
         self.assertEqual(result, DetectedError.Category.SPELLING)
 
+    def test_custom_word_order_rule_stays_grammar(self):
+        doc = self.nlp('weil ich gehe morgen nach Hause')
+        result = self.processor.categorize_error(
+            'ich gehe morgen nach Hause',
+            DetectedError.Category.OTHER,
+            'GERMAN_WORD_ORDER_SUBORDINATE',
+            doc,
+            5,
+        )
+        self.assertEqual(result, DetectedError.Category.GRAMMAR)
+
+    def test_custom_verb_rule_stays_verb_tense(self):
+        doc = self.nlp('Ich würde gehe.')
+        result = self.processor.categorize_error(
+            'gehe',
+            DetectedError.Category.OTHER,
+            'GERMAN_VERB_WUERDE_INFINITIVE',
+            doc,
+            10,
+        )
+        self.assertEqual(result, DetectedError.Category.VERB_TENSE)
+
 
 # ── LanguageToolClient offset remapping test ──
 
@@ -265,6 +287,7 @@ MRGRAMMAR_SETTINGS = {
     'LANGUAGETOOL_URL': 'http://localhost:8010/v2',
     'SPACY_MODEL': 'de_core_news_md',
     'SPACY_SENTENCE_SPLIT': True,
+    'ENABLE_ADVANCED_GERMAN_CHECKS': False,
     'MAX_CORRECTION_ATTEMPTS': 3,
     'HINT_THRESHOLD': 1,
     'SUPPORTED_LANGUAGES': ['de'],
@@ -646,6 +669,94 @@ class SpacyGrammarDetectorSimilarWordTest(TestCase):
         self.assertEqual(result, 'Haus')
 
 
+class AdvancedGermanGrammarDetectorTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        try:
+            import spacy
+            cls.nlp = spacy.load('de_core_news_md')
+        except OSError:
+            cls.nlp = None
+
+    def setUp(self):
+        if self.nlp is None:
+            self.skipTest('spaCy model de_core_news_md not installed')
+        from nlp.spacy_processor import _SpacyModelHolder
+
+        holder = _SpacyModelHolder.get()
+        holder._nlp = self.nlp
+
+    def test_non_german_language_returns_empty(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        self.assertEqual(detector.detect('Hello world', 'en'), [])
+
+    def test_detects_subordinate_clause_word_order(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        errors = detector.detect('Ich bleibe zu Hause, weil ich gehe morgen nach Hause.', 'de')
+
+        self.assertTrue(any(err['languagetool_rule_id'] == 'GERMAN_WORD_ORDER_SUBORDINATE' for err in errors))
+
+    def test_does_not_flag_correct_subordinate_clause_word_order(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        errors = detector.detect('Ich bleibe zu Hause, weil ich morgen nach Hause gehe.', 'de')
+
+        self.assertFalse(any(err['languagetool_rule_id'] == 'GERMAN_WORD_ORDER_SUBORDINATE' for err in errors))
+
+    def test_detects_feminine_article_mismatch(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        errors = detector.detect('Ein Frau wartet dort.', 'de')
+
+        article_errors = [
+            err for err in errors
+            if err['languagetool_rule_id'] == 'GERMAN_ARTICLE_FEMININE_NOUN_PHRASE'
+        ]
+        self.assertEqual(len(article_errors), 1)
+        self.assertEqual(article_errors[0]['correct_solution'], 'Eine')
+
+    def test_detects_feminine_adjective_ending(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        errors = detector.detect('Eine schön Frau wartet dort.', 'de')
+
+        adjective_errors = [
+            err for err in errors
+            if err['languagetool_rule_id'] == 'GERMAN_ADJECTIVE_ENDING_FEMININE'
+        ]
+        self.assertEqual(len(adjective_errors), 1)
+        self.assertEqual(adjective_errors[0]['correct_solution'], 'schöne')
+
+    def test_detects_wuerde_with_finite_verb(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        errors = detector.detect('Ich würde gehe, wenn ich mehr Zeit hätte.', 'de')
+
+        verb_errors = [
+            err for err in errors
+            if err['languagetool_rule_id'] == 'GERMAN_VERB_WUERDE_INFINITIVE'
+        ]
+        self.assertEqual(len(verb_errors), 1)
+        self.assertEqual(verb_errors[0]['correct_solution'], 'gehen')
+
+    def test_does_not_flag_wuerde_with_infinitive(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+
+        detector = AdvancedGermanGrammarDetector()
+        errors = detector.detect('Ich würde gehen, wenn ich mehr Zeit hätte.', 'de')
+
+        self.assertFalse(any(err['languagetool_rule_id'] == 'GERMAN_VERB_WUERDE_INFINITIVE' for err in errors))
+
+
 # ── ErrorDetectionService tests ──
 
 @override_settings(MRGRAMMAR=MRGRAMMAR_SETTINGS)
@@ -862,3 +973,14 @@ class ErrorDetectionServiceCustomDetectorsTest(TestCase):
 
         custom.detect.assert_called_once_with('Test.', 'de')
         self.assertEqual(len(service.detectors), 1)
+
+
+@override_settings(MRGRAMMAR={**MRGRAMMAR_SETTINGS, 'ENABLE_ADVANCED_GERMAN_CHECKS': True})
+class ErrorDetectionServiceAdvancedDetectorFlagTest(TestCase):
+    def test_default_detectors_include_advanced_german_detector_when_enabled(self):
+        from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
+        from nlp.services import ErrorDetectionService
+
+        service = ErrorDetectionService()
+
+        self.assertTrue(any(isinstance(detector, AdvancedGermanGrammarDetector) for detector in service.detectors))
