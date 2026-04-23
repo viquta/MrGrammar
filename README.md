@@ -1,12 +1,7 @@
 # MrGrammar
 
-NOTE use docker exec instead of running tests outside it: targeted suites successfully inside the backend container with:
-
-
- docker exec mrgrammar-backend-1 python manage.py test feedback.tests analytics.tests nlp.tests.AnalyzeSubmissionViewTests --noinput -v 2
-
 > **Public beta — still under active development.**  
-> Version 0.0.5 does not yet have a production-quality NLP pipeline. Expect rough edges.
+> Version 0.0.6 does not yet have a production-quality NLP pipeline. Expect rough edges.
 
 MrGrammar is a grammar-feedback platform for German language learning. The project focuses on a more active correction workflow than typical writing assistants: students should notice an error, try to fix it, receive a hint if needed, and only then see the final answer. The longer-term goal is to help teachers reduce correction workload while still getting useful insight into student progress and recurring error patterns.
 
