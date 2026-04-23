@@ -43,7 +43,8 @@ class AdvancedGermanGrammarDetector:
     def _detect_subordinate_word_order(self, doc) -> list[dict]:
         errors = []
         for sent in doc.sents:
-            lexical_tokens = [token for token in sent if not token.is_space and not token.is_punct]
+            sent_tokens = [token for token in sent if not token.is_space]
+            lexical_tokens = [token for token in sent_tokens if not token.is_punct]
             if len(lexical_tokens) < 4:
                 continue
 
@@ -51,7 +52,18 @@ class AdvancedGermanGrammarDetector:
                 if marker.text.lower() not in self.SUBORDINATE_MARKERS:
                     continue
 
-                clause_tokens = [token for token in lexical_tokens if token.i > marker.i]
+                clause_end_i = sent.end
+                for token in sent_tokens:
+                    if token.i <= marker.i:
+                        continue
+                    if token.is_punct and token.text == ',':
+                        clause_end_i = token.i
+                        break
+
+                clause_tokens = [
+                    token for token in lexical_tokens
+                    if marker.i < token.i < clause_end_i
+                ]
                 if len(clause_tokens) < 3:
                     continue
 

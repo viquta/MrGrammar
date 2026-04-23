@@ -34,6 +34,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-password}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-unsafe-dev-secret-key-change-me}
       LANGUAGETOOL_URL: http://languagetool:8010/v2
+      ENABLE_ADVANCED_GERMAN_CHECKS: "True"
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:26b}
       DJANGO_DEBUG: "True"

@@ -699,7 +699,13 @@ class AdvancedGermanGrammarDetectorTest(TestCase):
         detector = AdvancedGermanGrammarDetector()
         errors = detector.detect('Ich bleibe zu Hause, weil ich gehe morgen nach Hause.', 'de')
 
-        self.assertTrue(any(err['languagetool_rule_id'] == 'GERMAN_WORD_ORDER_SUBORDINATE' for err in errors))
+        clause_errors = [
+            err for err in errors
+            if err['languagetool_rule_id'] == 'GERMAN_WORD_ORDER_SUBORDINATE'
+        ]
+        self.assertEqual(len(clause_errors), 1)
+        self.assertEqual(clause_errors[0]['original_text'], 'ich gehe morgen nach Hause')
+        self.assertEqual(clause_errors[0]['correct_solution'], 'ich morgen nach Hause gehe')
 
     def test_does_not_flag_correct_subordinate_clause_word_order(self):
         from nlp.advanced_german_detector import AdvancedGermanGrammarDetector
