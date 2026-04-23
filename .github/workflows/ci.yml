@@ -10,6 +10,8 @@ jobs:
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       DJANGO_SECRET_KEY: ci-only-secret-key
       DJANGO_DEBUG: "True"
@@ -58,6 +60,8 @@ jobs:
   frontend:
     name: Frontend type check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend
