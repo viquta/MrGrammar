@@ -1,198 +1,143 @@
-<mxfile host="app.diagrams.net" modified="2026-04-19T12:00:00.000Z" agent="MrGrammar Documentation" version="24.0.0" type="device">
-  <diagram id="sequence-auth" name="Authentication Sequence">
-    <mxGraphModel dx="1422" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-
-        <!-- Title -->
-        <mxCell id="title" value="Sequence Diagram — Authentication Flow" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
-          <mxGeometry x="450" y="20" width="400" height="30" as="geometry" />
-        </mxCell>
-
-        <!-- ===== LIFELINES ===== -->
-
-        <!-- Actor: Student -->
-        <mxCell id="actor-student" value="Student&#xa;(Browser)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="80" y="70" width="120" height="850" as="geometry" />
-        </mxCell>
-
-        <!-- Participant: Frontend -->
-        <mxCell id="part-frontend" value="Frontend&#xa;(SvelteKit)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="320" y="70" width="120" height="850" as="geometry" />
-        </mxCell>
-
-        <!-- Participant: Backend -->
-        <mxCell id="part-backend" value="Backend&#xa;(DRF)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="560" y="70" width="120" height="850" as="geometry" />
-        </mxCell>
-
-        <!-- Participant: Database -->
-        <mxCell id="part-db" value="Database&#xa;(PostgreSQL)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="800" y="70" width="120" height="850" as="geometry" />
-        </mxCell>
-
-        <!-- ===== FRAGMENT: Registration ===== -->
-        <mxCell id="frag-register" value="Registration" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="50" y="130" width="910" height="190" as="geometry" />
-        </mxCell>
-
-        <!-- 1. Fill form -->
-        <mxCell id="msg-1" value="1: Fill registration form" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="140" y="170" as="sourcePoint" />
-            <mxPoint x="380" y="170" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 2. POST /api/auth/register/ -->
-        <mxCell id="msg-2" value="2: POST /api/auth/register/&#xa;{username, email, password, role}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="380" y="210" as="sourcePoint" />
-            <mxPoint x="620" y="210" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 3. INSERT User -->
-        <mxCell id="msg-3" value="3: INSERT accounts_user" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="245" as="sourcePoint" />
-            <mxPoint x="860" y="245" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 4. Return user row -->
-        <mxCell id="msg-4" value="4: user record" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="860" y="270" as="sourcePoint" />
-            <mxPoint x="620" y="270" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 5. 201 Created -->
-        <mxCell id="msg-5" value="5: 201 Created {id, username, role}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="295" as="sourcePoint" />
-            <mxPoint x="380" y="295" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- ===== FRAGMENT: Login ===== -->
-        <mxCell id="frag-login" value="Login" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="50" y="340" width="910" height="240" as="geometry" />
-        </mxCell>
-
-        <!-- 6. Enter credentials -->
-        <mxCell id="msg-6" value="6: Enter username + password" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="140" y="380" as="sourcePoint" />
-            <mxPoint x="380" y="380" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 7. POST /api/auth/login/ -->
-        <mxCell id="msg-7" value="7: POST /api/auth/login/&#xa;{username, password}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="380" y="420" as="sourcePoint" />
-            <mxPoint x="620" y="420" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 8. Verify credentials -->
-        <mxCell id="msg-8" value="8: SELECT user WHERE username" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="455" as="sourcePoint" />
-            <mxPoint x="860" y="455" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 9. user record -->
-        <mxCell id="msg-9" value="9: user record" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="860" y="480" as="sourcePoint" />
-            <mxPoint x="620" y="480" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 10. JWT tokens -->
-        <mxCell id="msg-10" value="10: 200 OK {access, refresh}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="510" as="sourcePoint" />
-            <mxPoint x="380" y="510" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 11. Store in localStorage -->
-        <mxCell id="msg-11" value="11: localStorage.setItem(&#xa;'token', access)&#xa;localStorage.setItem(&#xa;'refresh_token', refresh)" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="380" y="550" as="sourcePoint" />
-            <mxPoint x="380" y="550" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="430" y="550" />
-              <mxPoint x="430" y="565" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <!-- ===== FRAGMENT: Protected Request ===== -->
-        <mxCell id="frag-protected" value="Protected API Request" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="50" y="600" width="910" height="140" as="geometry" />
-        </mxCell>
-
-        <!-- 12. Navigate to /submissions -->
-        <mxCell id="msg-12" value="12: Navigate to /submissions" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="140" y="640" as="sourcePoint" />
-            <mxPoint x="380" y="640" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 13. GET with Bearer token -->
-        <mxCell id="msg-13" value="13: GET /api/submissions/&#xa;Authorization: Bearer &lt;access&gt;" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="380" y="680" as="sourcePoint" />
-            <mxPoint x="620" y="680" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 14. 200 OK -->
-        <mxCell id="msg-14" value="14: 200 OK {results: [...]}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="715" as="sourcePoint" />
-            <mxPoint x="380" y="715" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- ===== FRAGMENT: Token Refresh ===== -->
-        <mxCell id="frag-refresh" value="Backend Refresh Support (frontend auto-refresh not implemented)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="50" y="760" width="910" height="140" as="geometry" />
-        </mxCell>
-
-        <!-- 15. 401 Expired -->
-        <mxCell id="msg-15" value="15: 401 Unauthorized may occur when&#xa;the access token expires" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;strokeColor=#b85450;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="800" as="sourcePoint" />
-            <mxPoint x="380" y="800" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 16. POST refresh -->
-        <mxCell id="msg-16" value="16: Backend supports POST /api/auth/token/refresh/&#xa;with {refresh: &lt;refresh_token&gt;}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="380" y="840" as="sourcePoint" />
-            <mxPoint x="620" y="840" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- 17. New tokens -->
-        <mxCell id="msg-17" value="17: 200 OK {access, refresh}&#xa;(available to clients that implement refresh)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="870" as="sourcePoint" />
-            <mxPoint x="380" y="870" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram id="sequence-auth" name="Authentication Sequence">
+        <mxGraphModel dx="694" dy="534" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Sequence Diagram — Authentication Flow" style="text;html=1;fontSize=18;fontStyle=1;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="20" width="400" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="actor-student" value="Student&#xa;(Browser)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="70" width="120" height="850" as="geometry"/>
+                </mxCell>
+                <mxCell id="part-frontend" value="Frontend&#xa;(SvelteKit)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="70" width="120" height="850" as="geometry"/>
+                </mxCell>
+                <mxCell id="part-backend" value="Backend&#xa;(DRF)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="70" width="120" height="850" as="geometry"/>
+                </mxCell>
+                <mxCell id="part-db" value="Database&#xa;(PostgreSQL)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=40;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="70" width="120" height="850" as="geometry"/>
+                </mxCell>
+                <mxCell id="frag-register" value="Registration" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="130" width="910" height="190" as="geometry"/>
+                </mxCell>
+                <mxCell id="msg-1" value="1: Fill registration form" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="140" y="170" as="sourcePoint"/>
+                        <mxPoint x="380" y="170" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-2" value="2: POST /api/auth/register/&#xa;{username, email, password, role}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="380" y="210" as="sourcePoint"/>
+                        <mxPoint x="620" y="210" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-3" value="3: INSERT accounts_user" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="245" as="sourcePoint"/>
+                        <mxPoint x="860" y="245" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-4" value="4: user record" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="860" y="270" as="sourcePoint"/>
+                        <mxPoint x="620" y="270" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-5" value="5: 201 Created {id, username, role}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="295" as="sourcePoint"/>
+                        <mxPoint x="380" y="295" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="frag-login" value="Login" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="340" width="910" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="msg-6" value="6: Enter username + password" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="140" y="380" as="sourcePoint"/>
+                        <mxPoint x="380" y="380" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-7" value="7: POST /api/auth/login/&#xa;{username, password}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="380" y="420" as="sourcePoint"/>
+                        <mxPoint x="620" y="420" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-8" value="8: SELECT user WHERE username" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="455" as="sourcePoint"/>
+                        <mxPoint x="860" y="455" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-9" value="9: user record" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="860" y="480" as="sourcePoint"/>
+                        <mxPoint x="620" y="480" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-10" value="10: 200 OK {access, refresh}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="510" as="sourcePoint"/>
+                        <mxPoint x="380" y="510" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-11" value="11: localStorage.setItem(&#xa;&#39;token&#39;, access)&#xa;localStorage.setItem(&#xa;&#39;refresh_token&#39;, refresh)" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="380" y="550" as="sourcePoint"/>
+                        <mxPoint x="380" y="550" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="430" y="550"/>
+                            <mxPoint x="430" y="565"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="frag-protected" value="Protected API Request" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;width=80;height=40;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="600" width="910" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="msg-12" value="12: Navigate to /submissions" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="140" y="640" as="sourcePoint"/>
+                        <mxPoint x="380" y="640" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-13" value="13: GET /api/submissions/&#xa;Authorization: Bearer &lt;access&gt;" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="380" y="680" as="sourcePoint"/>
+                        <mxPoint x="620" y="680" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-14" value="14: 200 OK {results: [...]}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="715" as="sourcePoint"/>
+                        <mxPoint x="380" y="715" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="frag-refresh" value="Backend Refresh Support (frontend auto-refresh not implemented)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;shadow=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;width=100;height=80;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="760" width="910" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="msg-15" value="15: 401 Unauthorized may occur when&#xa;the access token expires" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;strokeColor=#b85450;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="800" as="sourcePoint"/>
+                        <mxPoint x="380" y="800" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-16" value="16: Backend supports POST /api/auth/token/refresh/&#xa;with {refresh: &lt;refresh_token&gt;}" style="html=1;verticalAlign=bottom;endArrow=block;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="380" y="840" as="sourcePoint"/>
+                        <mxPoint x="620" y="840" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="msg-17" value="17: 200 OK {access, refresh}&#xa;(available to clients that implement refresh)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="870" as="sourcePoint"/>
+                        <mxPoint x="380" y="870" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>

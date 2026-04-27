@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="component-deployment" name="Component &amp; Deployment Diagram">
-        <mxGraphModel dx="518" dy="569" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+        <mxGraphModel dx="694" dy="534" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -58,8 +58,8 @@
                 <mxCell id="app-nlp" value="&lt;b&gt;nlp&lt;/b&gt;&#xa;ErrorDetectionService&#xa;LanguageToolClient&#xa;SpacyGrammarDetector&#xa;SpacyTextProcessor" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=center;" parent="1" vertex="1">
                     <mxGeometry x="880" y="390" width="200" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="comp-spacy" value="&lt;b&gt;spaCy 3.8&lt;/b&gt;&#xa;de_core_news_md (~40 MB)&#xa;POS · NER · Vectors" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=center;" vertex="1" parent="1">
-                    <mxGeometry x="880" y="545" width="200" height="55" as="geometry"/>
+                <mxCell id="comp-spacy" value="&lt;b&gt;spaCy 3.8&lt;/b&gt;&#xa;de_core_news_md (~40 MB)&#xa;POS · NER · Vectors" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="575" width="200" height="55" as="geometry"/>
                 </mxCell>
                 <mxCell id="app-analytics" value="&lt;b&gt;analytics&lt;/b&gt;&#xa;LearnerErrorSummary&#xa;AnalyticsService" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;align=center;" parent="1" vertex="1">
                     <mxGeometry x="630" y="475" width="200" height="55" as="geometry"/>
@@ -71,13 +71,13 @@
                     <mxGeometry x="630" y="640" width="150" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="comp-celery" value="&lt;b&gt;Celery App&lt;/b&gt;&#xa;Async task dispatch&#xa;analyze_submission_async" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="810" y="565" width="190" height="55" as="geometry"/>
+                    <mxGeometry x="860" y="493" width="190" height="55" as="geometry"/>
                 </mxCell>
                 <mxCell id="comp-djredis" value="&lt;b&gt;django-redis&lt;/b&gt;&#xa;analytics cache" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=center;" parent="1" vertex="1">
                     <mxGeometry x="810" y="640" width="160" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="comp-levenshtein" value="&lt;b&gt;RapidFuzz&lt;/b&gt;&#xa;(Levenshtein)" style="shape=component;whiteSpace=wrap;html=1;rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=center;" parent="1" vertex="1">
-                    <mxGeometry x="880" y="620" width="150" height="45" as="geometry"/>
+                    <mxGeometry x="980" y="666" width="150" height="45" as="geometry"/>
                 </mxCell>
                 <mxCell id="node-db" value="" style="shape=mxgraph.uml25.node;whiteSpace=wrap;html=1;rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=top;spacingTop=5;" parent="1" vertex="1">
                     <mxGeometry x="580" y="800" width="350" height="280" as="geometry"/>
