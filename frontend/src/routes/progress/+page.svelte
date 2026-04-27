@@ -13,8 +13,13 @@
 	let analytics = $state<StudentAnalyticsResponse | null>(null);
 	let loading = $state(true);
 	let errorMessage = $state('');
+	let Sparkline = $state<any>(null);
 
 	onMount(async () => {
+		const sparklineImport = import('$lib/components/Sparkline.svelte').then((module) => {
+			Sparkline = module.default;
+		});
+
 		await auth.loadUser();
 		if (!$auth.user) {
 			goto('/login');
@@ -33,6 +38,8 @@
 		} finally {
 			loading = false;
 		}
+
+		await sparklineImport;
 	});
 
 	function extractApiDetail(error: unknown, fallback: string) {
@@ -236,16 +243,11 @@
 
 								<div class="w-full max-w-[12rem] rounded-3xl border border-stone-200 bg-white p-4">
 									<p class="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Timeline</p>
-									<svg viewBox="0 0 80 36" class="mt-4 h-16 w-full overflow-visible">
-										<polyline
-											fill="none"
-											stroke="rgb(15 23 42)"
-											stroke-width="2.5"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											points={sparkline(category.timeline)}
-										></polyline>
-									</svg>
+									{#if Sparkline}
+										<Sparkline points={sparkline(category.timeline)} />
+									{:else}
+										<div class="mt-4 h-16 w-full animate-pulse rounded bg-stone-200"></div>
+									{/if}
 									<div class="mt-2 flex items-center justify-between text-xs text-stone-500">
 										<span>{formatDate(category.timeline[0]?.submitted_at)}</span>
 										<span>{formatDate(category.timeline[category.timeline.length - 1]?.submitted_at)}</span>

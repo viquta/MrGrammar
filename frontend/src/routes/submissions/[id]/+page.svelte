@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth';
-	import { api, ApiError } from '$lib/api';
+	import { api, ApiError, submissionApi } from '$lib/api';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { TextSubmission, DetectedError, CorrectionAttemptResult } from '$lib/types';
@@ -17,6 +17,7 @@
 	let loading = $state(true);
 
 	const id = page.params.id;
+	const submissionId = Number(id);
 
 	const groupLabels: Record<string, string> = {
 		verb_phrase: 'Verb Phrase',
@@ -53,16 +54,50 @@
 		analyzing = true;
 		analyzeError = '';
 		try {
-			await api.post(`/nlp/submissions/${id}/analyze/`, {}, $auth.token);
-			const errRes = await api.get<DetectedError[]>(
-				`/feedback/submissions/${id}/errors/`,
-				$auth.token,
-			);
-			errors = errRes;
-			if (submission) submission.status = 'in_review';
+			// Trigger async analysis (returns immediately with 202 or 200)
+			const response = await submissionApi.analyzeSubmission(submissionId, $auth.token);
+			
+			// Update submission status
+			if (submission) {
+				submission.status = response.status;
+			}
+
+			// If already complete (status 200), fetch errors immediately
+			if (response.status === 'in_review') {
+				const errRes = await api.get<DetectedError[]>(
+					`/feedback/submissions/${id}/errors/`,
+					$auth.token,
+				);
+				errors = errRes;
+				return;
+			}
+
+			// Poll for analysis completion (status 202 = queued)
+			if (response.task_id) {
+				const finalStatus = await submissionApi.subscribeToAnalysisStatus(
+					submissionId,
+					$auth.token,
+					500, // Poll every 500ms
+					120, // Max 120 attempts = 60 seconds
+				);
+
+				if (finalStatus.is_complete) {
+					// Fetch errors once complete
+					const errRes = await api.get<DetectedError[]>(
+						`/feedback/submissions/${id}/errors/`,
+						$auth.token,
+					);
+					errors = errRes;
+					if (submission) submission.status = 'in_review';
+				} else if (finalStatus.error) {
+					throw new Error(finalStatus.error);
+				}
+			}
 		} catch (error) {
 			if (error instanceof ApiError && typeof error.data === 'object' && error.data !== null && 'detail' in error.data) {
 				analyzeError = String((error.data as { detail?: string }).detail ?? 'Analysis failed. Please try again.');
+			} else if (error instanceof Error) {
+				analyzeError = error.message;
 			} else {
 				analyzeError = 'Analysis failed. Please try again.';
 			}

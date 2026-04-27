@@ -657,19 +657,44 @@ Reveal the hint, answer, and final explanation for an error once manual reveal h
 
 ### POST `/api/nlp/submissions/{id}/analyze/`
 
-Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool instance, maps detected matches to `DetectedError` records, and transitions the submission status from `submitted` → `analyzing` → `in_review`.
+Queue async NLP error detection for a submission. The backend stores the Celery task ID on the submission, returns immediately, and the frontend polls a separate status endpoint until the submission reaches `in_review`.
 
 **Permissions**: `IsAuthenticated` (must be the submission's `student`)
 
 **Request Body**: None
 
-**Response** `200 OK`:
+**Response** `202 Accepted` when a new analysis job is queued:
 
 ```json
 {
   "submission_id": 6,
+  "task_id": "8d74a82b-0e7d-4b7d-b9f5-7c0d3b1c8a4f",
+  "status": "analyzing",
+  "message": "Analysis queued.",
+  "status_url": "/api/nlp/submissions/6/status/"
+}
+```
+
+**Response** `202 Accepted` when analysis is already in progress:
+
+```json
+{
+  "submission_id": 6,
+  "task_id": "8d74a82b-0e7d-4b7d-b9f5-7c0d3b1c8a4f",
+  "status": "analyzing",
+  "message": "Analysis already in progress.",
+  "status_url": "/api/nlp/submissions/6/status/"
+}
+```
+
+**Response** `200 OK` when analysis has already completed:
+
+```json
+{
+  "submission_id": 6,
+  "status": "in_review",
   "errors_found": 4,
-  "status": "in_review"
+  "message": "Analysis already complete."
 }
 ```
 
@@ -677,24 +702,56 @@ Trigger NLP error detection on a submission. Calls the self-hosted LanguageTool 
 
 | Status | Condition |
 |--------|-----------|
-| `400` | Submission has already been analyzed (status ≠ `submitted`) |
 | `403` | Requester is not the submission's student |
 | `404` | Submission does not exist |
+| `500` | Task queueing failed and the submission was reset to `submitted` |
+
+### GET `/api/nlp/submissions/{id}/status/`
+
+Poll the status of an async analysis job.
+
+**Permissions**: `IsAuthenticated` (must be the submission's `student`)
+
+**Response** `200 OK` while analysis is still running:
+
+```json
+{
+  "submission_id": 6,
+  "status": "analyzing",
+  "task_id": "8d74a82b-0e7d-4b7d-b9f5-7c0d3b1c8a4f",
+  "is_complete": false,
+  "errors_found": null,
+  "task_state": "STARTED"
+}
+```
+
+**Response** `200 OK` after analysis completes:
+
+```json
+{
+  "submission_id": 6,
+  "status": "in_review",
+  "task_id": "8d74a82b-0e7d-4b7d-b9f5-7c0d3b1c8a4f",
+  "is_complete": true,
+  "errors_found": 4
+}
+```
 
 **Backend Pipeline**:
 
-1. Validate submission ownership and status
-2. Set status to `analyzing`
-3. Create a spaCy `Doc` from the original submission text (using `SpacyTextProcessor.make_doc()`)
-4. Run **two** error-detection backends in sequence:
+1. Validate submission ownership
+2. If the submission is already `in_review`, return the cached result immediately
+3. If the submission is already `analyzing`, return the stored task ID so the client can keep polling
+4. Otherwise set status to `analyzing`, queue `analyze_submission_async`, and persist `analysis_task_id`
+5. In the Celery worker, create a spaCy `Doc` from the original submission text (using `SpacyTextProcessor.make_doc()`)
+6. Run **two** always-on error-detection backends in sequence:
    - **LanguageToolClient** — sends `POST /v2/check` to the self-hosted LanguageTool instance (optionally per-sentence via `detect_by_sentences()` using spaCy sentence splitting)
    - **SpacyGrammarDetector** — flags out-of-vocabulary (OOV) misspellings and missing noun capitalisation using the `de_core_news_md` model; generates correction suggestions via Levenshtein distance over the model's vector vocabulary
-5. Merge results from both backends and map each match to the application's `ErrorCategory` taxonomy
-6. Post-process each error with spaCy: override category using POS tags (`categorize_error()`), extract linguistic context (`extract_error_context()`), and record the POS tag (`get_pos_tag()`)
-7. Deduplicate by character offset range
-8. Batch-create `DetectedError` records (including `spacy_pos_tag` and `error_context` fields)
-9. Set status to `in_review`
-10. Return error count
+7. Optionally run `AdvancedGermanGrammarDetector` when `ENABLE_ADVANCED_GERMAN_CHECKS` is enabled
+8. Merge results from all enabled backends and map each match to the application's `ErrorCategory` taxonomy
+9. Post-process each error with spaCy: override category using POS tags (`categorize_error()`), extract linguistic context (`extract_error_context()`), and record the POS tag (`get_pos_tag()`)
+10. Deduplicate by character offset range, batch-create `DetectedError` rows, recompute `LearnerErrorSummary`, and set the submission status to `in_review`
+11. The polling endpoint returns `is_complete = true`, after which the frontend fetches `GET /api/feedback/submissions/{id}/errors/`
 
 ---
 
@@ -795,6 +852,11 @@ Retrieve a dashboard-ready learner insight payload for a student across their su
 | `403` | Student attempting to view another student's progress |
 | `403` | Teacher attempting to view a student outside their classrooms |
 
+**Performance Notes**:
+
+- Responses are cached in Redis for 300 seconds under the key pattern `analytics:student:{student_id}:progress`.
+- The cache is invalidated when a `TextSubmission` transitions to `in_review`, ensuring fresh data after async analysis completes.
+
 ---
 
 ### GET `/api/analytics/classroom/{id}/patterns/`
@@ -802,6 +864,11 @@ Retrieve a dashboard-ready learner insight payload for a student across their su
 Retrieve a dashboard-ready classroom insight payload across all submissions in a classroom.
 
 **Permissions**: `IsTeacherOrAdmin`
+
+**Performance Notes**:
+
+- Responses are cached in Redis for 120 seconds under the key pattern `analytics:classroom:{classroom_id}:patterns`.
+- The backing service now uses prefetch-aware rollups and grouped aggregations instead of per-error `COUNT()` queries.
 
 **Response** `200 OK`:
 

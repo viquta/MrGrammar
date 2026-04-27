@@ -125,7 +125,7 @@ Association model that links users to classrooms with a specific role. Implement
 
 **App**: `submissions` · **Table**: `submissions_textsubmission`
 
-Represents a student's text submission within a classroom. The `status` field tracks the submission through its lifecycle: submitted → analyzing → in review → completed.
+Represents a student's text submission within a classroom. The `status` field tracks the submission through its lifecycle. Async NLP analysis is queued via Celery and tracked on the model through `analysis_task_id`.
 
 ### Fields
 
@@ -138,6 +138,7 @@ Represents a student's text submission within a classroom. The `status` field tr
 | `content` | Text | — | — | Full text body |
 | `language` | String(10) | — | `'de'` | Text language for NLP |
 | `status` | String(15) | choices: `SubmissionStatus` | `submitted` | Current lifecycle stage |
+| `analysis_task_id` | String(255) | null/blank allowed | `null` | Celery task ID used by the polling endpoint while analysis is running |
 | `submitted_at` | DateTime | auto_now_add | — | Submission timestamp |
 | `updated_at` | DateTime | auto_now | — | Last modification timestamp |
 
@@ -145,8 +146,18 @@ Represents a student's text submission within a classroom. The `status` field tr
 
 ```
 submitted  →  analyzing  →  in_review  →  completed
-   (new)      (NLP running)  (errors found) (all resolved)
+   (new)      (Celery task running)  (analysis complete) (all errors resolved)
 ```
+
+### Async Analysis Notes
+
+- `in_review` is the terminal status for completed NLP analysis. It means the submission is ready for the learner-facing correction flow.
+- `completed` is a later pedagogical state reached only after all detected errors have been resolved.
+- `analysis_task_id` exists to support API-level task tracking and frontend polling; it is operational metadata rather than learner-facing domain data.
+
+### Indexes
+
+- Composite index on `['student', 'submitted_at']` to accelerate the student progress queries added for the analytics dashboard.
 
 ### Relationships
 
@@ -218,6 +229,10 @@ The feedback serializers compute several fields from the stored `DetectedError`,
 ### Ordering
 
 `['start_offset']` (document order)
+
+### Indexes
+
+- Composite index on `['submission', 'error_category']` to accelerate grouped analytics rollups and summary recomputation.
 
 ---
 

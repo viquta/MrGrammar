@@ -29,6 +29,7 @@
 | **Backend** | Django | 6.0 | Web framework and ORM |
 | | Django REST Framework (DRF) | 3.17 | RESTful API layer |
 | | SimpleJWT | 5.5 | JSON Web Token authentication |
+| | Celery | 5.3 | Background job execution for async submission analysis |
 | | django-cors-headers | — | Cross-origin request support |
 | **NLP** | LanguageTool | self-hosted | Grammar and spell checking (German) |
 | | spaCy | 3.8 | Text cleaning, sentence splitting, POS tagging, OOV spell detection |
@@ -36,6 +37,7 @@
 | | Ollama + Gemma 4 26B | local network | On-demand final explanation generation for phase 3 reveals |
 | | RapidFuzz / Levenshtein | — | Fuzzy string matching for correction validation and spell suggestions |
 | **Database** | PostgreSQL | 16 | Relational data persistence |
+| **Cache / Queue** | Redis | 7 | Django cache, Celery broker, and Celery result backend |
 | **Infrastructure** | Docker Compose | — | Multi-container orchestration |
 | | Node 22 (Alpine) | — | Frontend container runtime |
 | | Python 3.12 (Slim) | — | Backend container runtime |
@@ -61,37 +63,34 @@ The system follows a four-layer architecture with clear separation of concerns.
 │  /api/auth/ · /api/classrooms/ · /api/submissions/       │
 │  /api/feedback/ · /api/nlp/ · /api/analytics/            │
 └────────────────────────┬────────────────────────────────┘
-                         │  Python method calls
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Service Layer                         │
-│  CorrectionWorkflowService · ExplanationGenerationService│
-│  ErrorDetectionService · LanguageToolClient              │
-│  SpacyGrammarDetector · SpacyTextProcessor               │
-│  AnalyticsService                                        │
-│  (feedback/services.py, feedback/explanations.py,        │
-│   nlp/services.py, nlp/spacy_processor.py,               │
-│   analytics/services.py)                                 │
-└───────────┬─────────────────────────────┬───────────────┘
-            │  Django ORM                 │  HTTP
-            ▼                             ▼
-┌───────────────────────┐   ┌─────────────────────────────┐
-│     Data Layer        │   │   External Services         │
-│  PostgreSQL 16        │   │   LanguageTool REST API     │
-│  (port 5432)          │   │   Ollama REST API           │
-│                       │   │   (configured host)         │
-└───────────────────────┘   └─────────────────────────────┘
+                         │  queue jobs / call services
+            ┌────────────┴────────────┐
+            ▼                         ▼
+┌──────────────────────────────┐  ┌────────────────────────┐
+│     Async Worker Layer       │  │     Service Layer      │
+│  Celery worker + beat        │  │  CorrectionWorkflow... │
+│  analyze_submission_async    │  │  ErrorDetectionService │
+│  analytics recomputation     │  │  AnalyticsService      │
+└──────────────┬───────────────┘  └───────────┬────────────┘
+               │ Redis broker/result          │ ORM / cache / HTTP
+               ▼                              ▼
+┌──────────────────────────────┐  ┌─────────────────────────────┐
+│   Data / Queue Layer         │  │   External Services         │
+│ PostgreSQL 16 + Redis 7      │  │ LanguageTool REST API       │
+│ submissions, errors, cache,  │  │ Ollama REST API             │
+│ task state                   │  │ (configured host)           │
+└──────────────────────────────┘  └─────────────────────────────┘
 ```
 
 ### Layer Responsibilities
 
-**Presentation Layer** — The SvelteKit single-page application handles routing, form rendering, authentication state management (JWT tokens in `localStorage`), and the interactive correction UI. The currently implemented routes are `/`, `/login`, `/register`, `/submissions`, `/submissions/[id]`, and `/progress`. The submission detail page is phase-led: phase 1 shows grammatical-role highlights, phase 2 collects the learner's second try, and phase 3 supports the final retry or gated answer reveal. The dashboard also exposes teacher navigation links to `/classrooms` and `/analytics`, but those teacher pages are not implemented in the current frontend route tree yet.
+**Presentation Layer** — The SvelteKit single-page application handles routing, form rendering, authentication state management (JWT tokens in `localStorage`), and the interactive correction UI. The currently implemented routes are `/`, `/login`, `/register`, `/submissions`, `/submissions/[id]`, and `/progress`. The submission detail page is phase-led: phase 1 shows grammatical-role highlights, phase 2 collects the learner's second try, and phase 3 supports the final retry or gated answer reveal. Submission analysis is now asynchronous: the frontend queues analysis, polls the status endpoint every 500 ms, and renders errors once the submission reaches `in_review`.
 
-**API Gateway Layer** — DRF views handle HTTP request/response serialisation, input validation, and permission enforcement. Each Django app (`accounts`, `classrooms`, `submissions`, `feedback`, `nlp`, `analytics`) exposes its own URL namespace under `/api/`. Role-based permissions are enforced via custom permission classes.
+**API Gateway Layer** — DRF views handle HTTP request/response serialisation, input validation, and permission enforcement. Each Django app (`accounts`, `classrooms`, `submissions`, `feedback`, `nlp`, `analytics`) exposes its own URL namespace under `/api/`. Role-based permissions are enforced via custom permission classes. The NLP API now exposes both a queueing endpoint (`POST /api/nlp/submissions/{id}/analyze/`) and a polling endpoint (`GET /api/nlp/submissions/{id}/status/`).
 
-**Service Layer** — Business logic is encapsulated in service classes that are independent of the HTTP layer. This includes the correction workflow (Levenshtein similarity checking, hint gating, answer reveal policy, and learner-facing phase metadata), NLP error detection (a dual-backend pipeline combining LanguageTool for grammar rules and spaCy for OOV spelling detection, POS-based error categorisation, and linguistic context extraction), on-demand explanation generation through Ollama, and analytics aggregation.
+**Service Layer** — Business logic is encapsulated in service classes that are independent of the HTTP layer. This includes the correction workflow (Levenshtein similarity checking, hint gating, answer reveal policy, and learner-facing phase metadata), NLP error detection (a multi-backend pipeline combining LanguageTool, spaCy, and bounded advanced German checks), on-demand explanation generation through Ollama, and analytics aggregation. The heavy NLP analysis path now runs in a Celery task so API requests can return quickly while workers perform the expensive detection pass in the background.
 
-**Data Layer** — PostgreSQL stores all persistent state via Django's ORM. The schema comprises seven models across five apps (see [Data Model](02-data-model.md)).
+**Data Layer** — PostgreSQL stores all persistent state via Django's ORM. Redis is used alongside PostgreSQL for Django caching, the Celery broker, and the Celery result backend. The schema comprises seven models across five apps (see [Data Model](02-data-model.md)).
 
 ---
 
@@ -223,10 +222,10 @@ The backend is organised into six Django apps, each with a focused domain respon
 |-----|--------|---------------|
 | `accounts` | Authentication & user management | Custom `User` model, JWT endpoints, role-based permissions |
 | `classrooms` | Classroom & membership management | `Classroom`, `ClassroomMembership` models, member CRUD |
-| `submissions` | Student text submissions | `TextSubmission` model with status workflow |
+| `submissions` | Student text submissions | `TextSubmission` model with async analysis tracking |
 | `feedback` | Error records, correction workflow, explanation integration | `DetectedError`, `CorrectionAttempt` models, `CorrectionWorkflowService`, `ExplanationGenerationService` |
-| `nlp` | NLP error detection pipeline | `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector`, `SpacyTextProcessor` |
-| `analytics` | Progress tracking & statistics | `LearnerErrorSummary` model, `AnalyticsService` |
+| `nlp` | NLP error detection pipeline | `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector`, `SpacyTextProcessor`, `analyze_submission_async` |
+| `analytics` | Progress tracking & statistics | `LearnerErrorSummary` model, `AnalyticsService`, Redis-backed cached views |
 
 The frontend is a SvelteKit application with six implemented routes:
 

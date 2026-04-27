@@ -6,7 +6,7 @@
         <mxCell id="1" parent="0" />
 
         <!-- Title -->
-        <mxCell id="title" value="Sequence Diagram — Submission &amp; NLP Analysis Flow" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+        <mxCell id="title" value="Sequence Diagram — Submission &amp; Async NLP Analysis Flow" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
           <mxGeometry x="500" y="20" width="500" height="30" as="geometry" />
         </mxCell>
 
@@ -24,11 +24,11 @@
           <mxGeometry x="480" y="70" width="130" height="1060" as="geometry" />
         </mxCell>
 
-        <mxCell id="part-nlpview" value="AnalyzeView&#xa;(DRF)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+        <mxCell id="part-nlpview" value="Analyze + Status&#xa;Views (DRF)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="700" y="70" width="130" height="1060" as="geometry" />
         </mxCell>
 
-        <mxCell id="part-nlpsvc" value="ErrorDetection&#xa;Service" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+        <mxCell id="part-nlpsvc" value="Celery Worker&#xa;+ ErrorDetection" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="920" y="70" width="130" height="1260" as="geometry" />
         </mxCell>
 
@@ -89,7 +89,7 @@
         </mxCell>
 
         <!-- ===== PHASE 2: Trigger Analysis ===== -->
-        <mxCell id="frag-analyze" value="Phase 2: NLP Analysis (multi-backend pipeline)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-analyze" value="Phase 2: Queue Async NLP Analysis (multi-backend pipeline)" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="30" y="350" width="1770" height="580" as="geometry" />
         </mxCell>
 
@@ -107,67 +107,88 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-8" value="8: UPDATE status = 'analyzing'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-8" value="8: UPDATE status = 'analyzing'&#xa;   + store analysis_task_id" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="765" y="460" as="sourcePoint" />
             <mxPoint x="1710" y="460" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-9" value="9: analyze(submission)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-9" value="9: 202 Accepted&#xa;{task_id, status_url}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="765" y="500" as="sourcePoint" />
-            <mxPoint x="985" y="500" as="targetPoint" />
+            <mxPoint x="325" y="500" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <!-- spaCy Doc creation -->
-        <mxCell id="msg-9a" value="9a: make_doc(text)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-9a" value="9a: GET /api/nlp/submissions/{id}/status/&#xa;(poll every 500 ms)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="985" y="530" as="sourcePoint" />
-            <mxPoint x="1155" y="530" as="targetPoint" />
+            <mxPoint x="325" y="530" as="sourcePoint" />
+            <mxPoint x="765" y="530" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-9b" value="spaCy Doc (POS, NER, vectors)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-9b" value="9b: 200 OK {status: 'analyzing',&#xa;task_state, is_complete: false}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1155" y="555" as="sourcePoint" />
-            <mxPoint x="985" y="555" as="targetPoint" />
+            <mxPoint x="765" y="555" as="sourcePoint" />
+            <mxPoint x="325" y="555" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-9c" value="9c: analyze_submission_async(submission_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="585" as="sourcePoint" />
+            <mxPoint x="985" y="585" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <!-- Backend 1: LanguageTool -->
-        <mxCell id="msg-10" value="10: POST /v2/check&#xa;{text, language: 'de'}" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-10" value="10: make_doc(text)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="985" y="590" as="sourcePoint" />
-            <mxPoint x="1340" y="590" as="targetPoint" />
+            <mxPoint x="985" y="620" as="sourcePoint" />
+            <mxPoint x="1155" y="620" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-11" value="11: {matches: [{offset, length,&#xa;    rule, replacements, message}]}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-11" value="spaCy Doc (POS, NER, vectors)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1340" y="630" as="sourcePoint" />
-            <mxPoint x="985" y="630" as="targetPoint" />
+            <mxPoint x="1155" y="645" as="sourcePoint" />
+            <mxPoint x="985" y="645" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <!-- Backend 2: SpacyGrammarDetector -->
-        <mxCell id="msg-11a" value="11a: detect(doc, text, language)&#xa;[OOV check, noun capitalisation]" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-11a" value="11a: POST /v2/check&#xa;{text, language: 'de'}" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="985" y="665" as="sourcePoint" />
-            <mxPoint x="1520" y="665" as="targetPoint" />
+            <mxPoint x="985" y="680" as="sourcePoint" />
+            <mxPoint x="1340" y="680" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-11b" value="11b: List[ErrorDict] (OOV + capitalisation)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-11b" value="11b: {matches: [{offset, length,&#xa;    rule, replacements, message}]}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1520" y="700" as="sourcePoint" />
-            <mxPoint x="985" y="700" as="targetPoint" />
+            <mxPoint x="1340" y="715" as="sourcePoint" />
+            <mxPoint x="985" y="715" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-11e" value="11e: detect(doc, text, language)&#xa;[OOV check, noun capitalisation]" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="985" y="750" as="sourcePoint" />
+            <mxPoint x="1520" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="msg-11f" value="11f: List[ErrorDict] (OOV + capitalisation)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1520" y="785" as="sourcePoint" />
+            <mxPoint x="985" y="785" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
         <!-- Post-processing note -->
-        <mxCell id="note-mapping" value="Merge results from LanguageTool and spaCy detectors.&#xa;If ENABLE_ADVANCED_GERMAN_CHECKS is true,&#xa;also run AdvancedGermanGrammarDetector&#xa;(subordinate clauses, feminine agreement, würde + infinitive).&#xa;Post-process with SpacyTextProcessor:&#xa;• categorize_error() — POS-based override&#xa;• extract_error_context() — JSON metadata&#xa;• get_pos_tag() — spacy_pos_tag field&#xa;Deduplicate by offset range." style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
+        <mxCell id="note-mapping" value="Analyze endpoint returns immediately after queueing.&#xa;Frontend polls the status endpoint until completion.&#xa;Worker merges LanguageTool and spaCy detector results.&#xa;If ENABLE_ADVANCED_GERMAN_CHECKS is true,&#xa;also run AdvancedGermanGrammarDetector&#xa;(subordinate clauses, feminine agreement, würde + infinitive).&#xa;Post-process with SpacyTextProcessor:&#xa;• categorize_error() — POS-based override&#xa;• extract_error_context() — JSON metadata&#xa;• get_pos_tag() — spacy_pos_tag field&#xa;Deduplicate by offset range." style="shape=note;whiteSpace=wrap;html=1;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;size=14;" vertex="1" parent="1">
           <mxGeometry x="1020" y="715" width="250" height="145" as="geometry" />
         </mxCell>
 
@@ -193,14 +214,14 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-13" value="13: BULK INSERT detected_errors&#xa;(incl. spacy_pos_tag, error_context)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-13" value="13: BULK INSERT detected_errors&#xa;(incl. spacy_pos_tag, error_context)&#xa;+ UPDATE status = 'in_review'" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="765" y="905" as="sourcePoint" />
             <mxPoint x="1710" y="905" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="msg-14" value="14: 200 OK {submission_id,&#xa;    errors_found: N, status: 'in_review'}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
+        <mxCell id="msg-14" value="14: 200 OK {status: 'in_review',&#xa;errors_found: N, is_complete: true}" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="765" y="925" as="sourcePoint" />
             <mxPoint x="325" y="925" as="targetPoint" />
@@ -208,7 +229,7 @@
         </mxCell>
 
         <!-- ===== PHASE 3: Fetch Errors ===== -->
-        <mxCell id="frag-fetch" value="Phase 3: Fetch &amp; Display Errors" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="frag-fetch" value="Phase 3: Fetch &amp; Display Errors After Polling Completes" style="shape=umlFrame;whiteSpace=wrap;html=1;rounded=0;fontStyle=1;align=left;spacingLeft=10;fontSize=11;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="30" y="950" width="1770" height="200" as="geometry" />
         </mxCell>
 

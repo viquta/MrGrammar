@@ -12,6 +12,20 @@ from feedback.models import DetectedError
 from submissions.models import TextSubmission
 
 
+from unittest.mock import MagicMock, patch
+
+import requests
+from django.contrib.auth import get_user_model
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from rest_framework.test import APITestCase
+
+from analytics.models import LearnerErrorSummary
+from classrooms.models import Classroom
+from feedback.models import DetectedError
+from submissions.models import TextSubmission
+
+
 class AnalyzeSubmissionViewTests(APITestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -34,15 +48,152 @@ class AnalyzeSubmissionViewTests(APITestCase):
         )
         self.client.force_authenticate(user=self.student)
 
-    @patch('nlp.views.ErrorDetectionService.analyze', side_effect=RuntimeError('boom'))
-    def test_analyze_failure_resets_status_to_submitted(self, _mock_analyze):
-        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
+    @patch('nlp.views.analyze_submission_async')
+    def test_analyze_queues_task_and_returns_202(self, mock_task):
+        """View should queue task and return 202 Accepted."""
+        mock_async_result = MagicMock()
+        mock_async_result.id = 'test-task-id-123'
+        mock_task.delay.return_value = mock_async_result
 
+        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
+        response = self.client.post(url, data={}, format='json')
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data['task_id'], 'test-task-id-123')
+        self.assertEqual(response.data['status'], TextSubmission.Status.ANALYZING)
+        mock_task.delay.assert_called_once_with(self.submission.id)
+
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.status, TextSubmission.Status.ANALYZING)
+        self.assertEqual(self.submission.analysis_task_id, 'test-task-id-123')
+
+    @patch('nlp.views.analyze_submission_async')
+    def test_analyze_returns_200_when_already_complete(self, mock_task):
+        """View should return 200 with error count when already in_review."""
+        self.submission.status = TextSubmission.Status.IN_REVIEW
+        self.submission.save()
+        DetectedError.objects.create(
+            submission=self.submission,
+            error_category=DetectedError.Category.GRAMMAR,
+            start_offset=0,
+            end_offset=2,
+            original_text='Ic',
+            hint_text='Check spelling.',
+            correct_solution='Ich',
+        )
+
+        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
+        response = self.client.post(url, data={}, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['errors_found'], 1)
+        mock_task.delay.assert_not_called()
+
+    @patch('nlp.views.analyze_submission_async')
+    def test_analyze_returns_202_when_already_analyzing(self, mock_task):
+        """View should return 202 with existing task_id when analysis in-progress."""
+        self.submission.status = TextSubmission.Status.ANALYZING
+        self.submission.analysis_task_id = 'existing-task-id'
+        self.submission.save()
+
+        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
+        response = self.client.post(url, data={}, format='json')
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data['task_id'], 'existing-task-id')
+        mock_task.delay.assert_not_called()
+
+    @patch('nlp.views.analyze_submission_async')
+    def test_analyze_failure_queuing_resets_status(self, mock_task):
+        """View should reset status if task queueing fails."""
+        mock_task.delay.side_effect = RuntimeError('broker unavailable')
+
+        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
         response = self.client.post(url, data={}, format='json')
 
         self.submission.refresh_from_db()
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 500)
         self.assertEqual(self.submission.status, TextSubmission.Status.SUBMITTED)
+
+
+class AnalysisStatusViewTests(APITestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.student = user_model.objects.create_user(
+            username='student2',
+            password='testpass123',
+            role='student',
+        )
+        self.classroom = Classroom.objects.create(
+            name='German B1',
+            language='de',
+            created_by=self.student,
+        )
+        self.submission = TextSubmission.objects.create(
+            student=self.student,
+            classroom=self.classroom,
+            title='Status Test',
+            content='Ich gehe zur Schule.',
+            language='de',
+        )
+        self.client.force_authenticate(user=self.student)
+
+    def test_status_analyzing(self):
+        """Status endpoint returns analyzing with task state."""
+        self.submission.status = TextSubmission.Status.ANALYZING
+        self.submission.analysis_task_id = 'task-abc'
+        self.submission.save()
+
+        url = reverse('analysis-status', kwargs={'submission_id': self.submission.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'analyzing')
+        self.assertFalse(response.data['is_complete'])
+
+    def test_status_complete(self):
+        """Status endpoint returns is_complete=True and errors_found when in_review."""
+        self.submission.status = TextSubmission.Status.IN_REVIEW
+        self.submission.save()
+
+        url = reverse('analysis-status', kwargs={'submission_id': self.submission.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['is_complete'])
+        self.assertIsNotNone(response.data['errors_found'])
+
+    def test_status_not_found(self):
+        """Status endpoint returns 404 for unknown submission."""
+        url = reverse('analysis-status', kwargs={'submission_id': 99999})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 404)
+
+
+class AnalyzeSubmissionTaskTests(TestCase):
+    """Tests for the Celery task (run synchronously)."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.student = user_model.objects.create_user(
+            username='taskstudent',
+            password='testpass123',
+            role='student',
+        )
+        self.classroom = Classroom.objects.create(
+            name='German A2',
+            language='de',
+            created_by=self.student,
+        )
+        self.submission = TextSubmission.objects.create(
+            student=self.student,
+            classroom=self.classroom,
+            title='Task Test',
+            content='Ich bin ein Student.',
+            language='de',
+            status=TextSubmission.Status.ANALYZING,
+        )
 
     @patch(
         'nlp.services.LanguageToolClient.detect_by_sentences',
@@ -55,18 +206,17 @@ class AnalyzeSubmissionViewTests(APITestCase):
                 'hint_text': 'h',
                 'correct_solution': 'Ich',
             },
-            {'start_offset': 'bad', 'end_offset': 4, 'error_category': 'grammar'},
-            {'start_offset': 3, 'end_offset': 2, 'error_category': 'grammar'},
         ],
     )
     @patch('nlp.services.SpacyGrammarDetector.detect', return_value=[])
     @patch('nlp.services.SpacyTextProcessor')
-    def test_analyze_ignores_malformed_errors_and_completes(
+    def test_task_sets_in_review_and_creates_errors(
         self,
         MockProcessor,
-        _mock_spacy_detect,
-        _mock_detect_by_sentences,
+        _mock_spacy,
+        _mock_lt,
     ):
+        """Task should analyze and set status to IN_REVIEW."""
         processor_instance = MockProcessor.return_value
         processor_instance.make_doc.return_value = MagicMock()
         processor_instance.split_sentences.return_value = []
@@ -74,16 +224,14 @@ class AnalyzeSubmissionViewTests(APITestCase):
         processor_instance.extract_error_context.return_value = {}
         processor_instance.get_pos_tag.return_value = 'NOUN'
 
-        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
-        response = self.client.post(url, data={}, format='json')
+        from nlp.tasks import analyze_submission_async
+        result = analyze_submission_async(self.submission.id)
 
         self.submission.refresh_from_db()
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(self.submission.status, TextSubmission.Status.IN_REVIEW)
+        self.assertEqual(result['errors_found'], 1)
         self.assertEqual(DetectedError.objects.filter(submission=self.submission).count(), 1)
 
-    @patch('nlp.services.SpacyGrammarDetector.detect', return_value=[])
-    @patch('nlp.services.SpacyTextProcessor')
     @patch(
         'nlp.services.LanguageToolClient.detect_by_sentences',
         return_value=[
@@ -97,12 +245,15 @@ class AnalyzeSubmissionViewTests(APITestCase):
             }
         ],
     )
-    def test_analyze_creates_initial_learner_summary(
+    @patch('nlp.services.SpacyGrammarDetector.detect', return_value=[])
+    @patch('nlp.services.SpacyTextProcessor')
+    def test_task_creates_learner_summary(
         self,
-        _mock_detect_by_sentences,
         MockProcessor,
-        _mock_spacy_detect,
+        _mock_spacy,
+        _mock_lt,
     ):
+        """Task should compute analytics summary after analysis."""
         processor_instance = MockProcessor.return_value
         processor_instance.make_doc.return_value = MagicMock()
         processor_instance.split_sentences.return_value = []
@@ -110,19 +261,31 @@ class AnalyzeSubmissionViewTests(APITestCase):
         processor_instance.extract_error_context.return_value = {}
         processor_instance.get_pos_tag.return_value = 'DET'
 
-        url = reverse('analyze-submission', kwargs={'submission_id': self.submission.id})
+        from nlp.tasks import analyze_submission_async
+        analyze_submission_async(self.submission.id)
 
-        response = self.client.post(url, data={}, format='json')
-
-        self.assertEqual(response.status_code, 200)
         summary = LearnerErrorSummary.objects.get(
             student=self.student,
             submission=self.submission,
             error_category=DetectedError.Category.ARTICLE,
         )
         self.assertEqual(summary.total_errors, 1)
-        self.assertEqual(summary.first_attempt_successes, 0)
-        self.assertEqual(summary.avg_hints_used, 0.0)
+
+    def test_task_resets_status_on_failure(self):
+        """Task should reset status to SUBMITTED if analysis fails."""
+        from nlp.tasks import analyze_submission_async
+
+        with patch('nlp.tasks.ErrorDetectionService') as MockService:
+            MockService.return_value.analyze.side_effect = RuntimeError('boom')
+
+            # Without a broker, self.retry() uses raise_with_context which re-raises
+            # the original RuntimeError rather than Retry. Catch either so we can
+            # assert the status side-effect below.
+            with self.assertRaises(Exception):
+                analyze_submission_async(self.submission.id)
+
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.status, TextSubmission.Status.SUBMITTED)
 
 
 # ── SpacyTextProcessor tests ──

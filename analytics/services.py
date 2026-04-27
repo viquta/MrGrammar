@@ -17,23 +17,29 @@ class AnalyticsService:
 
     @staticmethod
     def compute_summary_for_submission(submission: TextSubmission):
-        errors = submission.errors.all()
-        categories = errors.values_list('error_category', flat=True).distinct()
+        # Single aggregated query per submission — no per-error DB round-trips
+        error_stats = (
+            DetectedError.objects
+            .filter(submission=submission)
+            .values('error_category')
+            .annotate(
+                total=Count('id'),
+                first_ok=Count(
+                    'attempts__id',
+                    filter=Q(attempts__attempt_number=1, attempts__is_correct=True),
+                ),
+                hints_used=Count(
+                    'attempts__id',
+                    filter=Q(attempts__hint_shown=True),
+                ),
+            )
+        )
 
         summaries = []
-        for category in categories:
-            cat_errors = errors.filter(error_category=category)
-            total = cat_errors.count()
-
-            first_attempt_ok = 0
-            total_hints = 0
-            for error in cat_errors:
-                first_attempt = error.attempts.filter(attempt_number=1).first()
-                if first_attempt and first_attempt.is_correct:
-                    first_attempt_ok += 1
-                total_hints += error.attempts.filter(hint_shown=True).count()
-
-            avg_hints = total_hints / total if total > 0 else 0.0
+        for stat in error_stats:
+            category = stat['error_category']
+            total = stat['total']
+            avg_hints = stat['hints_used'] / total if total > 0 else 0.0
 
             summary, _ = LearnerErrorSummary.objects.update_or_create(
                 student=submission.student,
@@ -41,7 +47,7 @@ class AnalyticsService:
                 error_category=category,
                 defaults={
                     'total_errors': total,
-                    'first_attempt_successes': first_attempt_ok,
+                    'first_attempt_successes': stat['first_ok'],
                     'avg_hints_used': avg_hints,
                 },
             )
@@ -121,7 +127,10 @@ class AnalyticsService:
                     for error in category_errors
                     if any(attempt.hint_shown for attempt in error.attempts.all())
                 )
-                category_attempts = sum(error.attempts.count() for error in category_errors)
+                # Use len() on prefetched attempts to avoid COUNT query per error
+                category_attempts = sum(
+                    len(list(error.attempts.all())) for error in category_errors
+                )
 
                 submission_categories.append({
                     'error_category': category,
@@ -265,7 +274,7 @@ class AnalyticsService:
         first_attempt_successes = sum(
             1
             for error in errors
-            if error.attempts.all() and error.attempts.all()[0].is_correct
+            if (atts := list(error.attempts.all())) and atts[0].is_correct
         )
         hint_shown_errors = sum(
             1
@@ -282,7 +291,8 @@ class AnalyticsService:
             for error in errors
             if error.resolution_method == DetectedError.ResolutionMethod.SOLUTION_REVEALED
         )
-        total_attempts = sum(error.attempts.count() for error in errors)
+        # Use len() on prefetched attempts to avoid COUNT query per error
+        total_attempts = sum(len(list(error.attempts.all())) for error in errors)
 
         category_rollups: dict[str, dict] = {}
         timeline_rows = []
@@ -315,7 +325,7 @@ class AnalyticsService:
             submission_first_attempt_successes = sum(
                 1
                 for error in submission_errors
-                if error.attempts.all() and error.attempts.all()[0].is_correct
+                if (atts := list(error.attempts.all())) and atts[0].is_correct
             )
             submission_hint_shown = sum(
                 1
@@ -348,7 +358,9 @@ class AnalyticsService:
             student_rollup['first_attempt_successes'] += submission_first_attempt_successes
             student_rollup['hint_shown_errors'] += submission_hint_shown
             student_rollup['manual_reveal_count'] += submission_manual_reveals
-            student_rollup['attempt_count'] += sum(error.attempts.count() for error in submission_errors)
+            student_rollup['attempt_count'] += sum(
+                len(list(error.attempts.all())) for error in submission_errors
+            )
             student_rollup['last_submission_at'] = submission.submitted_at
 
             for category, summary in submission_summaries.items():
@@ -364,7 +376,10 @@ class AnalyticsService:
                     for error in category_errors
                     if error.resolution_method == DetectedError.ResolutionMethod.MANUAL_REVEAL
                 )
-                category_attempts = sum(error.attempts.count() for error in category_errors)
+                # Use len() on prefetched attempts to avoid COUNT query per error
+                category_attempts = sum(
+                    len(list(error.attempts.all())) for error in category_errors
+                )
 
                 rollup = category_rollups.setdefault(
                     category,

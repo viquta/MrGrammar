@@ -6,12 +6,6 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-
-# PUBLIC_API_URL is a Vite env var baked into the JS bundle at build time.
-# Default to /api (relative path) so nginx proxying works out of the box.
-ARG PUBLIC_API_URL=/api
-ENV PUBLIC_API_URL=${PUBLIC_API_URL}
-
 RUN npm run build
 
 EXPOSE 4173

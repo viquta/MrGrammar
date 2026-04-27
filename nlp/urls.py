@@ -8,4 +8,9 @@ urlpatterns = [
         views.AnalyzeSubmissionView.as_view(),
         name='analyze-submission',
     ),
+    path(
+        'submissions/<int:submission_id>/status/',
+        views.AnalysisStatusView.as_view(),
+        name='analysis-status',
+    ),
 ]

@@ -8,11 +8,11 @@ Comprehensive technical documentation for MrGrammar, a pedagogically driven gram
 
 | # | Document | Description |
 |---|----------|-------------|
-| 1 | [Architecture Overview](01-architecture-overview.md) | System purpose, technology stack, layered architecture, role-based access control, design patterns, and external integrations. |
-| 2 | [Data Model](02-data-model.md) | All seven Django models with field tables, constraints, enumerations, and relationship descriptions. |
-| 3 | [API Reference](03-api-reference.md) | Complete REST API specification — endpoints, permissions, request/response schemas, status codes, and examples. |
-| 4 | [Sequence Diagrams](04-sequence-diagrams.md) | Three core workflows: authentication, submission & NLP analysis, and guided correction — with step-by-step narratives. |
-| 5 | [Deployment & Infrastructure](05-deployment.md) | Docker Compose services, port mapping, environment variables, volumes, and network architecture. |
+| 1 | [Architecture Overview](01-architecture-overview.md) | System purpose, technology stack, layered architecture, async analysis flow, role-based access control, design patterns, and external integrations. |
+| 2 | [Data Model](02-data-model.md) | All seven Django models with field tables, constraints, enumerations, relationship descriptions, async analysis tracking, and performance indexes. |
+| 3 | [API Reference](03-api-reference.md) | Complete REST API specification — endpoints, permissions, async NLP queueing/polling, analytics cache behavior, request/response schemas, and status codes. |
+| 4 | [Sequence Diagrams](04-sequence-diagrams.md) | Three core workflows: authentication, async submission & NLP analysis, and guided correction — with step-by-step narratives. |
+| 5 | [Deployment & Infrastructure](05-deployment.md) | Docker Compose services, Celery/Redis topology, port mapping, environment variables, volumes, and network architecture. |
 
 ---
 
@@ -26,12 +26,12 @@ All diagrams are in Draw.io XML format (`.drawio`). Open them with:
 |---------|------|------|
 | Class Diagram | [diagrams/class-diagram.drawio](diagrams/class-diagram.drawio) | UML Class Diagram — 7 models, 6 enumerations, associations with cardinality |
 | Auth Sequence | [diagrams/sequence-auth.drawio](diagrams/sequence-auth.drawio) | UML Sequence — Registration → Login → JWT lifecycle and backend refresh support |
-| Submission Sequence | [diagrams/sequence-submission.drawio](diagrams/sequence-submission.drawio) | UML Sequence — Submit text → NLP analysis → Error display |
+| Submission Sequence | [diagrams/sequence-submission.drawio](diagrams/sequence-submission.drawio) | UML Sequence — Submit text → async NLP queueing/polling → error display |
 | Correction Sequence | [diagrams/sequence-correction.drawio](diagrams/sequence-correction.drawio) | UML Sequence — stored attempts, phase labels, solution reveal, and manual reveal |
 | Workflow Phase 1 Concept | [diagrams/my_idea_workflow_phase_1.drawio](diagrams/my_idea_workflow_phase_1.drawio) | Product workflow concept — analyze text and render grouped highlights |
 | Workflow Phase 2 Concept | [diagrams/my_idea_workflow_phase_2.drawio](diagrams/my_idea_workflow_phase_2.drawio) | Product workflow concept — second try, correctness check, and hint path |
 | Workflow Phase 3 Concept | [diagrams/my_idea_workflow_phase_3.drawio](diagrams/my_idea_workflow_phase_3.drawio) | Product workflow concept — third try, answer reveal, and short explanation |
-| Component & Deployment | [diagrams/component-deployment.drawio](diagrams/component-deployment.drawio) | UML Component + Deployment — Docker containers, components, interfaces |
+| Component & Deployment | [diagrams/component-deployment.drawio](diagrams/component-deployment.drawio) | UML Component + Deployment — Docker containers, Celery/Redis services, components, interfaces |
 
 The `.drawio` files are the canonical diagram artifacts in this repository. Older PNG exports are not tracked and should not be treated as the source of truth.
 
@@ -43,8 +43,9 @@ The `.drawio` files are the canonical diagram artifacts in this repository. Olde
 |-------|-----------|---------|
 | Frontend | SvelteKit + Svelte 5 + Tailwind CSS 4 | SvelteKit 2.57 |
 | Backend | Django + Django REST Framework + SimpleJWT | Django 6.0 |
-| NLP | LanguageTool (self-hosted) + spaCy + Ollama | — |
+| NLP | LanguageTool (self-hosted) + spaCy + Ollama + Celery workers | — |
 | Database | PostgreSQL | 16 |
+| Cache / Queue | Redis | 7 |
 | Infrastructure | Docker Compose | — |
 
 ---

@@ -83,12 +83,14 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 | **Student (Browser)** | Student creating and analyzing a text submission |
 | **Frontend (SvelteKit)** | SPA handling submission forms and error display |
 | **SubmissionView (DRF)** | Handles CRUD operations for text submissions |
-| **AnalyzeView (DRF)** | Triggers NLP analysis pipeline |
-| **ErrorDetectionService** | Orchestrates error detection with pluggable backends |
+| **Analyze/Status Views (DRF)** | Queue async analysis and expose polling status |
+| **Celery Worker** | Executes `analyze_submission_async` in the background |
+| **ErrorDetectionService** | Orchestrates error detection with pluggable backends inside the worker |
 | **SpacyTextProcessor** | Text cleaning, sentence splitting, POS analysis, and error post-processing (`nlp/spacy_processor.py`) |
 | **LanguageTool (REST API)** | Self-hosted grammar checker (`/v2/check`) |
 | **SpacyGrammarDetector** | OOV spell detection and noun capitalisation checking via spaCy (`nlp/services.py`) |
 | **AdvancedGermanGrammarDetector** | Optional bounded German grammar checks, enabled in Docker Compose |
+| **Redis** | Celery broker / result backend and analytics cache |
 | **Database (PostgreSQL)** | Stores submissions and detected errors |
 
 ### Flow Description
@@ -101,38 +103,40 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 4. The database returns the created record.
 5. The frontend receives `201 Created` with the submission data.
 
-#### Phase 2: NLP Analysis
+#### Phase 2: Queue Async NLP Analysis
 
 6. The student clicks the "Analyze" button on the submission detail page.
 7. The frontend sends `POST /api/nlp/submissions/{id}/analyze/`.
-8. The `AnalyzeView` validates ownership (`student == request.user`) and that the submission hasn't already been analyzed (`status == 'submitted'`). It then updates the status to `analyzing`.
-9. The view delegates to `ErrorDetectionService.analyze(submission)`.
-10. The `ErrorDetectionService` creates a spaCy `Doc` from the original submission text via `SpacyTextProcessor.make_doc()`, then runs its configured backends sequentially:
+8. The `AnalyzeSubmissionView` validates ownership (`student == request.user`). If the submission is already `in_review`, it returns the existing result immediately. If it is already `analyzing`, it returns the existing task ID. Otherwise it sets the submission status to `analyzing`, queues a Celery task, stores `analysis_task_id`, and returns `202 Accepted` with a `status_url`.
+9. The frontend polls `GET /api/nlp/submissions/{id}/status/` every 500 ms until `is_complete = true`.
+10. In the background, the Celery worker executes `analyze_submission_async(submission_id)` and calls `ErrorDetectionService.analyze(submission)`.
+11. The `ErrorDetectionService` creates a spaCy `Doc` from the original submission text via `SpacyTextProcessor.make_doc()`, then runs its configured backends sequentially:
     - **LanguageToolClient**: sends `POST /v2/check` to the self-hosted LanguageTool instance. Optionally splits text into sentences using `SpacyTextProcessor.split_sentences()` and checks each sentence individually, remapping offsets back to the original text.
     - **SpacyGrammarDetector**: iterates over spaCy tokens to detect out-of-vocabulary (OOV) misspellings and missing noun capitalisation. Skips named entities (PER, LOC, ORG) and uppercase proper nouns. Generates correction suggestions via Levenshtein distance over the model's vector vocabulary.
     - **AdvancedGermanGrammarDetector**: when enabled, adds bounded checks for subordinate-clause word order, feminine noun-phrase agreement, and `würde` + infinitive patterns.
-11. Both backends return lists of raw error dicts (offset, length, category, message, replacement).
-12. The `ErrorDetectionService` post-processes each error using `SpacyTextProcessor`:
+12. The enabled backends return lists of raw error dicts (offset, length, category, message, replacement).
+13. The `ErrorDetectionService` post-processes each error using `SpacyTextProcessor`:
     - **Category override**: `categorize_error()` uses POS/morphology tags to refine the category (e.g., DET→ARTICLE, ADP→PREPOSITION, VERB/AUX→VERB_TENSE).
     - **Context extraction**: `extract_error_context()` records surrounding POS tags, dependency relations, and named entities as JSON.
     - **POS tag**: `get_pos_tag()` records the spaCy POS tag at the error offset.
-13. The view deduplicates errors by character offset range and batch-creates `DetectedError` records (including `spacy_pos_tag` and `error_context` fields) in the database, then updates the submission status to `in_review`.
-14. The view responds with `200 OK` containing the submission ID, error count, and new status.
+14. The worker deduplicates errors by character offset range, batch-creates `DetectedError` records (including `spacy_pos_tag` and `error_context` fields), recomputes learner summaries, and updates the submission status to `in_review`.
+15. The status endpoint begins returning `is_complete = true` with the detected error count.
 
 #### Phase 3: Fetch & Display Errors
 
-15. The frontend immediately fetches the detected errors via `GET /api/feedback/submissions/{id}/errors/`.
-16. The `SubmissionErrorsView` queries all `DetectedError` records for the submission. Pagination is **disabled** on this endpoint to allow the frontend to perform inline text highlighting.
-17. The database returns the error records.
-18. The frontend receives the full error list, including stored error metadata plus derived presentation fields such as `display_group`, `display_label`, `can_request_solution`, and `next_try_number`.
-19. The frontend renders the submission text with colour-coded inline highlights at the corresponding character offsets, grouped by `display_group` rather than the persistent `error_category` field.
+16. Once polling reports completion, the frontend fetches the detected errors via `GET /api/feedback/submissions/{id}/errors/`.
+17. The `SubmissionErrorsView` queries all `DetectedError` records for the submission. Pagination is **disabled** on this endpoint to allow the frontend to perform inline text highlighting.
+18. The database returns the error records.
+19. The frontend receives the full error list, including stored error metadata plus derived presentation fields such as `display_group`, `display_label`, `can_request_solution`, and `next_try_number`.
+20. The frontend renders the submission text with colour-coded inline highlights at the corresponding character offsets, grouped by `display_group` rather than the persistent `error_category` field.
 
 ### Implementation References
 
 | Component | Source |
 |-----------|--------|
 | Submission CRUD | `submissions/views.py` → `SubmissionListCreateView` |
-| NLP trigger | `nlp/views.py` → `AnalyzeSubmissionView` |
+| NLP trigger | `nlp/views.py` → `AnalyzeSubmissionView`, `AnalysisStatusView` |
+| Async task | `nlp/tasks.py` → `analyze_submission_async` |
 | Error detection | `nlp/services.py` → `ErrorDetectionService`, `LanguageToolClient`, `SpacyGrammarDetector` |
 | spaCy processing | `nlp/spacy_processor.py` → `SpacyTextProcessor` |
 | Category mapping | `nlp/services.py` → `LanguageToolClient._map_category()`, `SpacyTextProcessor.categorize_error()` |

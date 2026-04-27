@@ -10,6 +10,18 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   languagetool:
     image: erikvl87/languagetool:latest
     ports:
@@ -38,9 +50,65 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:26b}
       DJANGO_DEBUG: "True"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
     depends_on:
       - db
       - languagetool
+      - redis
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: celery -A mrgrammar worker -l info
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: mrgrammar
+      POSTGRES_USER: mrgrammar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-password}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-unsafe-dev-secret-key-change-me}
+      LANGUAGETOOL_URL: http://languagetool:8010/v2
+      ENABLE_ADVANCED_GERMAN_CHECKS: "True"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:26b}
+      DJANGO_DEBUG: "True"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      - db
+      - languagetool
+      - redis
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: celery -A mrgrammar beat -l info
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: mrgrammar
+      POSTGRES_USER: mrgrammar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-password}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-unsafe-dev-secret-key-change-me}
+      LANGUAGETOOL_URL: http://languagetool:8010/v2
+      ENABLE_ADVANCED_GERMAN_CHECKS: "True"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:26b}
+      DJANGO_DEBUG: "True"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      - db
+      - languagetool
+      - redis
 
   frontend:
     build:
@@ -58,3 +126,4 @@ services:
 
 volumes:
   pgdata:
+  redisdata:

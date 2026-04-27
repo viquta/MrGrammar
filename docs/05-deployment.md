@@ -21,16 +21,19 @@ This document describes the deployment architecture, Docker Compose configuratio
 
 ## 1. Overview
 
-MrGrammar runs as a set of four Docker containers orchestrated by Docker Compose, plus one external Ollama host on the local network for final-answer explanations:
+MrGrammar runs as a set of six Docker containers orchestrated by Docker Compose, plus one external Ollama host on the local network for final-answer explanations:
 
 | Service | Image | Purpose |
 |---------|-------|---------|
 | **frontend** | Custom (Node 22-alpine) | SvelteKit SPA development server |
 | **backend** | Custom (Python 3.12-slim) | Django REST Framework API server |
+| **celery_worker** | Custom (Python 3.12-slim) | Background NLP analysis worker |
+| **celery_beat** | Custom (Python 3.12-slim) | Celery scheduler process |
 | **db** | `postgres:16-alpine` | PostgreSQL relational database |
+| **redis** | `redis:7-alpine` | Django cache, Celery broker, Celery result backend |
 | **languagetool** | `erikvl87/languagetool` | Self-hosted grammar checker (German) |
 
-All services communicate over a shared Docker Compose network. The frontend and backend expose ports to the host for browser access and API calls.
+All services communicate over a shared Docker Compose network. The frontend, backend, Redis, PostgreSQL, and LanguageTool expose ports to the host for local development and debugging.
 
 The backend also makes outbound HTTP requests to an Ollama instance configured via `OLLAMA_BASE_URL`. In Docker-based local development, a common setup is `http://host.docker.internal:11434`; in non-Docker local development, `http://localhost:11434` is a typical choice. This integration is used only for phase-3 explanation generation.
 
@@ -61,6 +64,22 @@ Initialises with the database `mrgrammar`, user `mrgrammar`, and a password supp
 
 Provides the `/v2/check` REST endpoint for German grammar and spell checking. The backend's `nlp` app calls this service during text analysis.
 
+### `redis` — Cache, Broker, and Result Backend
+
+| Property | Value |
+|----------|-------|
+| Image | `redis:7-alpine` |
+| Host port | `6379` |
+| Container port | `6379` |
+| Volume | `redisdata:/data` |
+| Health check | `redis-cli ping` |
+
+Redis is shared across three responsibilities:
+
+- Django cache (`REDIS_URL=redis://redis:6379/0`)
+- Celery broker (`CELERY_BROKER_URL=redis://redis:6379/1`)
+- Celery result backend (`CELERY_RESULT_BACKEND=redis://redis:6379/2`)
+
 ### `backend` — Django API Server
 
 | Property | Value |
@@ -69,10 +88,34 @@ Provides the `/v2/check` REST endpoint for German grammar and spell checking. Th
 | Dockerfile | `Dockerfile.backend` |
 | Host port | `8000` |
 | Container port | `8000` |
-| Depends on | `db`, `languagetool` |
+| Depends on | `db`, `languagetool`, `redis` |
 | Volume mounts | `.:/app` (code hot-reload) |
 
-Runs the Django development server. On startup, the container installs Python dependencies from `requirements.txt` and serves the API at `http://localhost:8000/api/`.
+Runs the Django development server. On startup, the container installs Python dependencies from `requirements.txt` and serves the API at `http://localhost:8000/api/`. The API queues submission analysis work onto Celery instead of running the full NLP pipeline inside the request/response cycle.
+
+### `celery_worker` — Background NLP Worker
+
+| Property | Value |
+|----------|-------|
+| Build context | `.` (project root) |
+| Dockerfile | `Dockerfile.backend` |
+| Command | `celery -A mrgrammar worker -l info` |
+| Depends on | `db`, `languagetool`, `redis` |
+| Volume mounts | `.:/app` |
+
+Executes `nlp.tasks.analyze_submission_async`, calls the full NLP detection pipeline, and recomputes learner analytics after a submission reaches `in_review`.
+
+### `celery_beat` — Scheduler
+
+| Property | Value |
+|----------|-------|
+| Build context | `.` (project root) |
+| Dockerfile | `Dockerfile.backend` |
+| Command | `celery -A mrgrammar beat -l info` |
+| Depends on | `db`, `languagetool`, `redis` |
+| Volume mounts | `.:/app` |
+
+The current repository does not yet define periodic jobs, but the scheduler process is present so future cache-warmup, cleanup, or monitoring tasks can be added without changing the container topology.
 
 ### `frontend` — SvelteKit SPA
 
@@ -96,6 +139,7 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | frontend | 5173 | 5173 | HTTP | SvelteKit dev server (browser access) |
 | backend | 8000 | 8000 | HTTP | Django REST API |
 | db | 5432 | 5432 | PostgreSQL | Database connections |
+| redis | 6379 | 6379 | RESP/TCP | Cache and Celery transport |
 | languagetool | 8010 | 8010 | HTTP | LanguageTool REST API |
 
 ---
@@ -107,11 +151,15 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DJANGO_DEBUG` | `True` | Enable Django debug mode |
+| `DJANGO_SECRET_KEY` | `unsafe-dev-secret-key-change-me` | Django secret key for local development |
 | `POSTGRES_DB` | `mrgrammar` | Database name |
 | `POSTGRES_USER` | `mrgrammar` | Database user |
 | `POSTGRES_PASSWORD` | `change-me-local-password` | Database password |
 | `POSTGRES_HOST` | `db` | Database hostname (Docker service name) |
 | `POSTGRES_PORT` | `5432` | Database port |
+| `REDIS_URL` | `redis://redis:6379/0` | Default Redis database for Django caching |
+| `CELERY_BROKER_URL` | `redis://redis:6379/1` | Redis database used as the Celery broker |
+| `CELERY_RESULT_BACKEND` | `redis://redis:6379/2` | Redis database used for Celery task results |
 | `LANGUAGETOOL_URL` | `http://languagetool:8010/v2` | LanguageTool API base URL |
 | `SPACY_MODEL` | `de_core_news_md` | spaCy model name loaded by `SpacyTextProcessor` |
 | `SPACY_SENTENCE_SPLIT` | `True` | Whether to use spaCy sentence splitting for per-sentence LanguageTool analysis |
@@ -137,6 +185,10 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | `POSTGRES_USER` | `mrgrammar` | Superuser name |
 | `POSTGRES_PASSWORD` | `change-me-local-password` | Superuser password |
 
+### Redis Service
+
+Redis is configured via the container image and does not require additional environment variables in the checked-in Compose file.
+
 ### LanguageTool Service
 
 | Variable | Default | Description |
@@ -151,6 +203,7 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 | Volume | Type | Mount Point | Purpose |
 |--------|------|-------------|---------|
 | `pgdata` | Named volume | `/var/lib/postgresql/data` | Persists database data across container restarts |
+| `redisdata` | Named volume | `/data` | Persists Redis state across container restarts |
 | `.:/app` | Bind mount (backend) | `/app` | Hot-reloads Python code changes during development |
 | `./frontend:/app` | Bind mount (frontend) | `/app` | Hot-reloads Svelte/TS code changes during development |
 | `/app/node_modules` | Anonymous volume (frontend) | `/app/node_modules` | Isolates container node_modules from host |
@@ -161,14 +214,17 @@ Runs the Vite development server with `--host 0.0.0.0` for container access. Nod
 
 ```
 frontend ──depends_on──→ backend ──depends_on──→ db
+                                  ──depends_on──→ redis
                                   ──depends_on──→ languagetool
-                                  ──HTTP────────→ ollama host (`OLLAMA_BASE_URL`)
+celery_worker ────────depends_on──→ db / redis / languagetool
+celery_beat ──────────depends_on──→ db / redis / languagetool
+backend ──HTTP────→ ollama host (`OLLAMA_BASE_URL`)
 ```
 
 Docker Compose starts services in dependency order:
 
-1. **db** and **languagetool** start first (no dependencies)
-2. **backend** starts after db and languagetool are running
+1. **db**, **redis**, and **languagetool** start first (no dependencies)
+2. **backend**, **celery_worker**, and **celery_beat** start after those services are running
 3. **frontend** starts after backend is running
 
 > **Note**: `depends_on` only waits for the container to start, not for the service inside it to be ready. In production, health checks or wait scripts should be used to ensure PostgreSQL and LanguageTool are accepting connections before the backend begins serving requests.
@@ -203,7 +259,7 @@ Docker Compose starts services in dependency order:
 
 ## 8. Network Architecture
 
-All four services share a single Docker Compose default network. Inter-service communication uses Docker DNS resolution (service names as hostnames):
+All six services share a single Docker Compose default network. Inter-service communication uses Docker DNS resolution (service names as hostnames):
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -212,22 +268,27 @@ All four services share a single Docker Compose default network. Inter-service c
 │  ┌──────────┐     HTTP/JSON     ┌──────────┐                 │
 │  │ frontend │ ───────────────→  │ backend  │                 │
 │  │  :5173   │   port 8000       │  :8000   │                 │
-│  └──────────┘                   └────┬──┬──┘                 │
-│                                      │  │                     │
-│                           PostgreSQL │  │ HTTP                │
-│                           port 5432  │  │ port 8010           │
-│                                      ▼  ▼                     │
-│                              ┌──────┐  ┌─────────────┐       │
-│                              │  db  │  │ languagetool │       │
-│                              │ :5432│  │   :8010      │       │
-│                              └──────┘  └─────────────┘       │
-│                                 │                              │
-│                              ┌──┴──┐                          │
-│                              │pgdata│ (volume)                │
-│                              └─────┘                          │
+│  └──────────┘                   └─┬──┬──┬──┘                 │
+│                                   │  │  │                    │
+│                           Redis   │  │  │ HTTP               │
+│                           :6379   │  │  │ :8010              │
+│                                   ▼  ▼  ▼                    │
+│                              ┌──────┐ ┌───────┐ ┌──────────┐ │
+│                              │redis │ │  db   │ │languagetool│ │
+│                              │:6379 │ │:5432  │ │  :8010   │ │
+│                              └──┬───┘ └──┬────┘ └──────────┘ │
+│                                 │         │                  │
+│                      ┌──────────▼───┐  ┌──▼───┐              │
+│                      │celery_worker │  │pgdata│              │
+│                      │ celery_beat  │  └──────┘              │
+│                      └──────────────┘                        │
+│                           │                                  │
+│                       ┌───▼────┐                             │
+│                       │redisdata│                            │
+│                       └─────────┘                            │
 └──────────────────────────────────────────────────────────────┘
                         │              │
-              Host :5173, :8000    Host :5432, :8010
+              Host :5173, :8000    Host :5432, :6379, :8010
               (browser access)    (development access)
 ```
 
@@ -238,7 +299,10 @@ All four services share a single Docker Compose default network. Inter-service c
 | Browser | Frontend | HTTP | `localhost:5173` |
 | Frontend (browser) | Backend | HTTP/JSON | `localhost:8000/api/` |
 | Backend | Database | PostgreSQL wire protocol | `db:5432` |
+| Backend | Redis | RESP/TCP | `redis:6379` |
+| Celery worker / beat | Redis | RESP/TCP | `redis:6379` |
 | Backend (nlp) | LanguageTool | HTTP | `languagetool:8010/v2/check` |
+| Celery worker (nlp) | LanguageTool | HTTP | `languagetool:8010/v2/check` |
 | Backend (feedback) | Ollama | HTTP | `OLLAMA_BASE_URL/api/generate` |
 
 > **CORS**: The backend includes `django-cors-headers` middleware configured to accept requests from `http://localhost:5173` (the frontend's origin). This is required because the browser makes cross-origin API calls from the SvelteKit dev server to the Django API server.

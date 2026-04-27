@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { ApiError, API_URL } from '$lib/api';
 	import { auth } from '$lib/stores/auth';
-	import { API_URL } from '$lib/api';
 	import { goto } from '$app/navigation';
 
 	let username = $state('');
@@ -16,12 +16,20 @@
 			await auth.login(username, password);
 			goto('/');
 		} catch (e: unknown) {
-			if (e instanceof TypeError) {
-				error = `Cannot reach the server (${API_URL}). Check your connection or network settings.`;
-			} else if (e && typeof e === 'object' && 'status' in e && (e as {status: number}).status === 401) {
-				error = 'Invalid username or password.';
+			if (e instanceof ApiError && e.status === 401) {
+				error = 'Invalid username/email or password.';
+			} else if (e instanceof ApiError) {
+				const detail =
+					typeof e.data === 'object' && e.data !== null && 'detail' in e.data
+						? String((e.data as { detail?: string }).detail ?? '')
+						: '';
+				error = detail
+					? `Login failed (${e.status}): ${detail}`
+					: `Login failed (${e.status}).`;
+			} else if (e instanceof TypeError) {
+				error = `Cannot reach API at ${API_URL}. Check backend is running and CORS/origin settings.`;
 			} else {
-				error = 'Login failed. Please try again.';
+				error = 'Login failed. Check backend/API availability and try again.';
 			}
 		} finally {
 			loading = false;
@@ -40,7 +48,7 @@
 
 		<form onsubmit={handleLogin} class="space-y-4">
 			<div>
-				<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+				<label for="username" class="block text-sm font-medium text-gray-700">Username or Email</label>
 				<input
 					id="username"
 					type="text"

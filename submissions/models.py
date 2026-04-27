@@ -27,6 +27,12 @@ class TextSubmission(models.Model):
         choices=Status.choices,
         default=Status.SUBMITTED,
     )
+    analysis_task_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text='Celery task ID for async analysis',
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
