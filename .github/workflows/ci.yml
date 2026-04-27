@@ -20,9 +20,21 @@ jobs:
       POSTGRES_PASSWORD: ci-password
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
+      REDIS_URL: redis://localhost:6379/0
+      CELERY_BROKER_URL: redis://localhost:6379/1
+      CELERY_RESULT_BACKEND: redis://localhost:6379/2
       LANGUAGETOOL_URL: http://localhost:8010/v2
       OLLAMA_BASE_URL: http://localhost:11434
     services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       postgres:
         image: postgres:16-alpine
         env:
