@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000/api';
+export const API_URL = import.meta.env.PUBLIC_API_URL ?? '/api';
 
 import type { ClassroomAnalyticsResponse, StudentAnalyticsResponse } from '$lib/types';
 

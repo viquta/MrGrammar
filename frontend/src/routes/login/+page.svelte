@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth';
+	import { API_URL } from '$lib/api';
 	import { goto } from '$app/navigation';
 
 	let username = $state('');
@@ -7,14 +8,21 @@
 	let error = $state('');
 	let loading = $state(false);
 
-	async function handleLogin() {
+	async function handleLogin(event?: SubmitEvent) {
+		event?.preventDefault();
 		error = '';
 		loading = true;
 		try {
 			await auth.login(username, password);
 			goto('/');
 		} catch (e: unknown) {
-			error = 'Invalid username or password.';
+			if (e instanceof TypeError) {
+				error = `Cannot reach the server (${API_URL}). Check your connection or network settings.`;
+			} else if (e && typeof e === 'object' && 'status' in e && (e as {status: number}).status === 401) {
+				error = 'Invalid username or password.';
+			} else {
+				error = 'Login failed. Please try again.';
+			}
 		} finally {
 			loading = false;
 		}

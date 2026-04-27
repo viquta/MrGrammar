@@ -112,10 +112,15 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': False,
 }
 
-# ── CORS (SvelteKit dev server) ──
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS', 'http://localhost:5173'
-).split(',')
+# ── CORS ──
+# In production (nginx on port 80) the browser origin is http://localhost.
+# In dev the Vite dev server runs on :5173. Both need to be allowed by default.
+_default_cors = 'http://localhost:5173,http://127.0.0.1:5173,http://localhost,http://127.0.0.1'
+CORS_ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get('CORS_ALLOWED_ORIGINS', _default_cors).split(',')
+    if o.strip()
+]
 
 # ── MrGrammar Configuration (NFR-8.4: configurable without code changes) ──
 MRGRAMMAR = {
