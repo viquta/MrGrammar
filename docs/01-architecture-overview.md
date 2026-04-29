@@ -279,3 +279,65 @@ The relational database stores all application state. Connection parameters are 
 | Password | Configured via `POSTGRES_PASSWORD` |
 | Host | `localhost` (or `db` in Docker) |
 | Port | `5432` |
+
+
+
+
+Additional notes from gitnexus:
+The **MrGrammar** project follows a distributed, multi-tier architecture designed for heavy-duty Natural Language Processing (NLP) tasks. It utilizes a decoupled frontend and backend, with an asynchronous task processing layer to handle computationally expensive grammar analysis.
+
+### 🏗️ System Architecture Overview
+
+![System Architecture](./diagrams/Architecture.svg)
+
+---
+
+### 🛠️ Component Breakdown
+
+#### 1. Client Layer (Frontend)
+*   **Technology**: [SvelteKit](https://kit.svelte.dev/) [[frontend/package.json]]
+*   **Role**: Provides a reactive user interface for submitting text, viewing grammar corrections, and tracking analysis progress.
+*   **Key Features**: Uses Svelte stores for authentication state [[frontend/src/lib/stores/auth.ts]] and communicates with the backend via a RESTful API [[frontend/src/api.ts]].
+
+#### 2. API & Orchestration Layer (Backend)
+*   **Technology**: [Django](https://www.djangoproject.com/) [[mrgrammar/settings.py]]
+*   **Role**: Acts as the central orchestrator. It manages user authentication, handles API requests, manages the database schema, and dispatches heavy NLP tasks to the worker queue.
+*   **Key Modules**:
+    *   `accounts`: Handles user registration and permissions [[accounts/views.py]].
+    *   `submissions`: Manages the lifecycle of text submissions and analysis tasks [[submissions/models.py]].
+    *   `analytics`: Provides insights into usage and performance [[analytics/services.py]].
+
+#### 3. Asynchronous Processing Layer
+*   **Technology**: [Celery](https://docs.celeryq.dev/) & [Redis](https://redis.io/) [[docker-compose.yml]]
+*   **Role**: Offloads long-running NLP computations from the request-response cycle to prevent API timeouts.
+*   **Workflow**:
+    1.  The Django API receives a submission and creates a task in **PostgreSQL**.
+    2.  A task is pushed to **Redis** (the broker).
+    3.  **Celery Workers** pick up the task, execute the NLP pipeline (Spacy, LanguageTool, or Ollama), and write the results back to the database.
+
+#### 4. External Intelligence & NLP
+*   **LanguageTool**: A rule-based engine used for deterministic grammar and style checking [[docker-compose.yml]].
+*   **Ollama**: Provides Large Language Model (LLM) capabilities (e.g., `gemma4:26b`) for advanced semantic analysis and context-aware corrections [[docker-compose.py]].
+*   **Spacy**: Used within the worker for tokenization, POS tagging, and linguistic feature extraction [[nlp/spacy_processor.py]].
+
+#### 5. Data & Messaging Layer
+*   **PostgreSQL**: The primary relational database for storing users, submissions, classroom data, and analysis results [[docker-compose.yml]].
+*   **Redis**: Serves a dual purpose:
+    1.  **Message Broker**: Facilitates communication between Django and Celery.
+    2.  **Cache**: Stores transient data and session information to improve performance.
+
+---
+
+### 📊 Summary Table
+
+| Layer | Technology | Primary Responsibility |
+| :--- | :--- | :--- |
+| **Frontend** | SvelteKit | User Interface & Interaction |
+| **API** | Django REST Framework | Request Handling & Orchestration |
+| **Task Queue** | Celery | Asynchronous NLP Execution |
+| **Database** | PostgreSQL | Persistent Data Storage |
+| **Broker/Cache** | Redis | Task Distribution & Caching |
+| **NLP Engine** | LanguageTool / Spacy | Rule-based Grammar Analysis |
+| **Generative AI** | Ollama (LLM) | Semantic & Contextual Analysis |
+
+**TL;DR**: The project is a **distributed micro-service architecture** using **Django** for the API, **SvelteKit** for the UI, and **Celery/Redis** for asynchronous processing of heavy NLP tasks powered by **LanguageTool** and **Ollama (LLM)**.
