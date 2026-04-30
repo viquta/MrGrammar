@@ -1,5 +1,5 @@
 # Architecture Overview
-
+This architecture overview has current and depricated notes, which need to be updated. I will need to review the code and do this properly for version 0.0.8.
 ## 1. System Purpose
 
 **MrGrammar** is a pedagogically driven grammar-feedback platform for German-language learners. It addresses a core problem in language education: teachers cannot deliver ideal corrective feedback — highlight → hint → answer with explanation — to large cohorts at scale. Unlike consumer tools such as Grammarly, MrGrammar enforces an **active-learning workflow** with three learner-facing phases: phase 1 analysis and grammatical-role highlighting, phase 2 second-try correction with hint unlock, and phase 3 third-try correction or gated answer reveal. The platform also provides teachers with longitudinal error-pattern analytics.
@@ -9,15 +9,15 @@
 | Goal | Description |
 |------|-------------|
 | **Active Learning** | Students must move through analyze → second try → third try / gated reveal instead of seeing the answer immediately. |
-| **Scalable Feedback** | Automated low-level error detection (grammar, spelling, articles, prepositions, verb tense, punctuation) reduces teacher workload. |
-| **Longitudinal Tracking** | Error-pattern aggregation enables teachers to identify persistent weaknesses at the student and classroom level. |
+| **Scalable and Effective Feedback** | Automated low-level error detection (grammar, spelling, articles, prepositions, verb tense, punctuation) reduces teacher workload, while increasing learning efficiency. |
+| **Longitudinal Tracking [still in progress, not functional as of 0.0.7]** | Error-pattern aggregation enables teachers to identify persistent weaknesses at the student and classroom level. |
 | **Role-Based Access** | Three distinct roles — Student, Teacher, Admin — with fine-grained permission enforcement at the API layer. |
-| **Extensible NLP Pipeline** | Pluggable error-detection backends allow future integration of additional NLP services beyond LanguageTool. |
+| **Extensible NLP Pipeline [work in progress as of 0.0.7]** | Pluggable error-detection backends allow future integration of additional NLP services beyond LanguageTool. |
 | **Configurable Explanation Layer** | Final explanations are generated on demand through a local Ollama-hosted LLM so the reveal step can stay pedagogical rather than static. |
 
 ---
 
-## 2. Technology Stack
+## 2. Technology Stack [this is from an older version, below 0.0.7]
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
@@ -44,7 +44,7 @@
 
 ---
 
-## 3. Layered Architecture
+## 3. Layered Architecture [this is from an older version, below 0.0.7]
 
 The system follows a four-layer architecture with clear separation of concerns.
 
