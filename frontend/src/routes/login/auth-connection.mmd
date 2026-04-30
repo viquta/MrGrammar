@@ -1,0 +1,15 @@
+graph LR
+    LoginPage["+page.svelte (Login page)"]
+    AuthStore["auth.ts (auth store)"]
+    ApiLib["$lib/api"]
+    BackendLogin["Backend: POST /auth/login/"]
+    BackendMe["Backend: GET /auth/me/"]
+    LocalStorage["localStorage"]
+
+    LoginPage -->|calls auth.login| AuthStore
+    AuthStore -->|calls api.post login| ApiLib
+    AuthStore -->|calls api.get current user| ApiLib
+    AuthStore -->|stores tokens| LocalStorage
+    AuthStore -->|reads token| LocalStorage
+    ApiLib -->|POST /auth/login/| BackendLogin
+    ApiLib -->|GET /auth/me/| BackendMe
