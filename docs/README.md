@@ -10,9 +10,10 @@ Comprehensive technical documentation for MrGrammar, a pedagogically driven gram
 |---|----------|-------------|
 | 1 | [Architecture Overview](01-architecture-overview.md) | System purpose, technology stack, layered architecture, async analysis flow, role-based access control, design patterns, and external integrations. |
 | 2 | [Data Model](02-data-model.md) | All seven Django models with field tables, constraints, enumerations, relationship descriptions, async analysis tracking, and performance indexes. |
-| 3 | [API Reference](03-api-reference.md) | Complete REST API specification — endpoints, permissions, async NLP queueing/polling, analytics cache behavior, request/response schemas, and status codes. |
-| 4 | [Sequence Diagrams](04-sequence-diagrams.md) | Three core workflows: authentication, async submission & NLP analysis, and guided correction — with step-by-step narratives. |
-| 5 | [Deployment & Infrastructure](05-deployment.md) | Docker Compose services, Celery/Redis topology, port mapping, environment variables, volumes, and network architecture. |
+| 3 | [Object Model](06-object-model.md) | Logical object model derived from the Django schema, with entity relationships, workflow semantics, and derived presentation fields. |
+| 4 | [API Reference](03-api-reference.md) | Complete REST API specification — endpoints, permissions, async NLP queueing/polling, analytics cache behavior, request/response schemas, and status codes. |
+| 5 | [Sequence Diagrams](04-sequence-diagrams.md) | Three core workflows: authentication, async submission & NLP analysis, and guided correction — with step-by-step narratives. |
+| 6 | [Deployment & Infrastructure](05-deployment.md) | Docker Compose services, Celery/Redis topology, port mapping, environment variables, volumes, and network architecture. |
 
 ---
 
