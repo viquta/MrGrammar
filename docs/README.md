@@ -26,6 +26,7 @@ All diagrams are in Draw.io XML format (`.drawio`). Open them with:
 | Diagram | File | Type |
 |---------|------|------|
 | Class Diagram | [diagrams/class-diagram.drawio](diagrams/class-diagram.drawio) | UML Class Diagram — 7 models, 6 enumerations, associations with cardinality |
+| Object Model | [diagrams/object-model.drawio](diagrams/object-model.drawio) | UML Class Diagram for the current object model derived from the Django schema |
 | Auth Sequence | [diagrams/sequence-auth.drawio](diagrams/sequence-auth.drawio) | UML Sequence — Registration → Login → JWT lifecycle and backend refresh support |
 | Submission Sequence | [diagrams/sequence-submission.drawio](diagrams/sequence-submission.drawio) | UML Sequence — Submit text → async NLP queueing/polling → error display |
 | Correction Sequence | [diagrams/sequence-correction.drawio](diagrams/sequence-correction.drawio) | UML Sequence — stored attempts, phase labels, solution reveal, and manual reveal |

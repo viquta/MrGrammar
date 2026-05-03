@@ -108,61 +108,58 @@ These values are computed in the feedback layer and are not persisted directly:
 ```mermaid
 classDiagram
     class User {
-        +Integer id
-        +String username
-        +String email
-        +String role
+        Int: id
+        String: username
+        Hashed String: password
+        String: role (Teacher, Student, or Admin)
     }
     class Classroom {
-        +Integer id
-        +String name
-        +String language
-        +ForeignKey created_by
+        Int: id
+        String: name
+        String: language
+        ForeignKey: created_by
     }
     class ClassroomMembership {
-        +Integer id
-        +ForeignKey user
-        +ForeignKey classroom
-        +String role
+        Int: id
+        ForeignKey: user
+        ForeignKey: classroom
+        String: role
     }
     class TextSubmission {
-        +Integer id
-        +ForeignKey student
-        +ForeignKey classroom
-        +String title
-        +Text content
-        +String status
-        +String analysis_task_id
+        Int: id
+        ForeignKey: student
+        ForeignKey: classroom
+        String: title
+        Text: content
+        String: status
+        String: analysis_task_id
     }
     class DetectedError {
-        +Integer id
-        +ForeignKey submission
-        +String error_category
-        +String severity
-        +Integer start_offset
-        +Integer end_offset
-        +Text original_text
-        +Text hint_text
-        +Text correct_solution
-        +Boolean is_resolved
-        +String resolution_method
+        Int: id
+        ForeignKey: submission
+        String: error_category
+        Text: original_text
+        Text: hint_text
+        Text: correct_solution
+        Boolean: is_resolved
+        String: resolution_method
     }
     class CorrectionAttempt {
-        +Integer id
-        +ForeignKey error
-        +ForeignKey student
-        +Integer attempt_number
-        +Text attempted_text
-        +Boolean is_correct
+        Int: id
+        ForeignKey: error
+        ForeignKey: student
+        Int: attempt_number
+        Text: attempted_text
+        Boolean: is_correct
     }
     class LearnerErrorSummary {
-        +Integer id
-        +ForeignKey student
-        +ForeignKey submission
-        +String error_category
-        +Integer total_errors
-        +Integer first_attempt_successes
-        +Float avg_hints_used
+        Int: id
+        ForeignKey: student
+        ForeignKey: submission
+        String: error_category
+        Int: total_errors
+        Int: first_attempt_successes
+        Float: avg_hints_used
     }
 
     User "1" --* "0..*" Classroom : created_classrooms

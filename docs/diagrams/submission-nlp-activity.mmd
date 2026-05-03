@@ -1,0 +1,100 @@
+flowchart TB
+    %% Initial node
+    start([Start])
+
+    %% Swimlanes
+    subgraph Student
+        S1[Navigate to submissions]
+        S2[Fill submission form]
+        S3['Click Analyze button']
+        S4[View errors and highlights]
+    end
+
+    subgraph Frontend
+        F1[Send POST /api/submissions/]
+        F2[Receive 201 Created]
+        F3["Send POST /api/nlp/submissions/{id}/analyze/"]
+        F4["Poll GET /api/nlp/submissions/{id}/status/"]
+        F5["Send GET /api/feedback/submissions/{id}/errors/"]
+        F6[Render submission with highlights]
+    end
+
+    subgraph Backend
+        B1[Validate and create TextSubmission]
+        B2[Set status to SUBMITTED]
+        B9[Return 201 Created]
+        B3[Validate ownership]
+        B4[Set status to analyzing, queue Celery task]
+        B5[Return 202 Accepted with status_url]
+        B6["Return status (polling)"]
+        B7[Query DetectedError records]
+        B8[Return error list]
+    end
+
+    subgraph Worker
+        W1[Execute analyze_submission_async]
+        W2[Call ErrorDetectionService.analyze]
+        W3[Create spaCy Doc via SpacyTextProcessor]
+        W4[Run backends: LanguageTool, SpacyGrammarDetector, etc.]
+        W5[Post-process errors]
+        W6[Batch-create DetectedError records]
+        W7[Update submission status to in_review]
+    end
+
+    subgraph Database
+        D1[Insert TextSubmission record]
+        D2[Return created record]
+        D3[Store analysis_task_id]
+        D4[Store DetectedError records]
+        D5[Return error records]
+    end
+
+    subgraph External_Services
+        E1[LanguageTool /v2/check]
+        E2[SpacyGrammarDetector]
+        E3[AdvancedGermanGrammarDetector]
+    end
+
+    %% Flows
+    start --> S1
+    S1 --> S2
+    S2 --> F1
+    F1 --> B1
+    B1 --> B2
+    B2 --> D1
+    D1 --> D2
+    D2 --> B9
+    B9 --> F2
+    F2 --> S3
+    S3 --> F3
+    F3 --> B3
+    B3 --> B4
+    B4 --> B5
+    B5 --> F4
+    F4 --> B6
+    B6 --> F4
+    B6 -->|is_complete = true| F5
+    F5 --> B7
+    B7 --> D5
+    D5 --> B8
+    B8 --> F6
+    F6 --> S4
+
+    %% Worker async flow
+    B4 --> W1
+    W1 --> W2
+    W2 --> W3
+    W3 --> W4
+    W4 --> E1
+    W4 --> E2
+    W4 --> E3
+    E1 --> W5
+    E2 --> W5
+    E3 --> W5
+    W5 --> W6
+    W6 --> D4
+    D4 --> W7
+    W7 --> B6
+
+    %% Final node
+    S4 --> finish([End])

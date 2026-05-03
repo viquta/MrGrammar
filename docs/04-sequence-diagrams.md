@@ -31,7 +31,7 @@ This document describes the core workflows of MrGrammar using UML sequence diagr
 
 #### Registration
 
-1. The student navigates to `/register` and fills in the registration form (username, email, password, first/last name, role).
+1. THIS I NEED TO TAKE AWAY, CAUSE ONLY ADMIN SHOULD HAVE THE RIGHT TO DO THIS...The student navigates to `/register` and fills in the registration form (username, email, password, first/last name, role).
 2. The frontend sends `POST /api/auth/register/` with the form data.
 3. The backend validates the input (password ≥ 8 characters, unique username) and creates a new user via `User.objects.create_user()`, which hashes the password.
 4. The database inserts the user record and returns it.
